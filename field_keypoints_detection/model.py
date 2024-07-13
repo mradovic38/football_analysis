@@ -1,7 +1,8 @@
 import tensorflow as tf
 from dataset_utils import load_tfrecords
-from keypoint_data_augmentation import ResizeAndNormalizeLayer, AugmentationLayer
-from keypoint_loss import visibility_based_mse
+from field_keypoints_detection.data_augmentation import ResizeAndNormalizeLayer, AugmentationLayer
+from field_keypoints_detection.loss import visibility_based_mse
+from field_keypoints_detection.metrics import VisibilityAccuracy, VisibleKeypointMSE
 
 class KeypointModel:
     def __init__(self, train_tfrecord_path, val_tfrecord_path, test_tfrecord_path, batch_size=32):
@@ -26,7 +27,7 @@ class KeypointModel:
 
     def build(self):
         input_image = tf.keras.layers.Input(shape=(None, None, 3))
-        input_keypoints = tf.keras.layers.Input(shape=(None, 3))  # Use None for the number of keypoints
+        input_keypoints = tf.keras.layers.Input(shape=(None, 3)) 
 
         # Get the number of keypoints dynamically
         num_keypoints = tf.shape(input_keypoints)[1]
@@ -37,23 +38,29 @@ class KeypointModel:
         # Apply augmentation layer (only during training)
         augmented_image, augmented_keypoints = AugmentationLayer()([resized_image, normalized_keypoints])
 
-        # Define the rest of the model architecture
-        x = tf.keras.layers.Conv2D(32, (3, 3), activation='relu')(augmented_image)
+        # Use EfficientNetB3 as feature extractor
+        base_model = tf.keras.applications.EfficientNetB3(include_top=False, input_tensor=augmented_image)
+        base_model.trainable = False  # Freeze the base model
+
+        # Add custom layers on top
+        x = tf.keras.layers.Conv2D(256, (5, 5), activation='relu', padding='same')(base_model.output)
+        x = tf.keras.layers.Conv2D(128, (3, 3), activation='relu', padding='same')(x)
         x = tf.keras.layers.MaxPooling2D((2, 2))(x)
-        x = tf.keras.layers.Conv2D(64, (3, 3), activation='relu')(x)
-        x = tf.keras.layers.MaxPooling2D((2, 2))(x)
-        x = tf.keras.layers.Conv2D(128, (3, 3), activation='relu')(x)
-        x = tf.keras.layers.MaxPooling2D((2, 2))(x)
-        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Conv2D(64, (1, 1), activation='relu', padding='same')(x)
+        x = tf.keras.layers.GlobalMaxPooling2D()(x)
+        x = tf.keras.layers.Dropout(0.5)(x)
         x = tf.keras.layers.Dense(512, activation='relu')(x)
+        x = tf.keras.layers.Dropout(0.5)(x)
         output = tf.keras.layers.Dense(num_keypoints * 3, activation='linear')(x)
-        output = tf.keras.layers.Reshape((num_keypoints, 3))(output) 
+        output = tf.keras.layers.Reshape((num_keypoints, 3))(output)  
 
         model = tf.keras.Model(inputs=[input_image, input_keypoints], outputs=[output])
 
-        model.compile(optimizer='adam', loss=visibility_based_mse)
+        model.compile(optimizer='adam', loss=visibility_based_mse,
+                      metrics=[VisibleKeypointMSE(), VisibilityAccuracy()])
 
         self.model = model
+
 
     def train(self, epochs=10):
         # Train the model
