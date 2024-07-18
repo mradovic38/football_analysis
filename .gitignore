@@ -9,3 +9,4 @@ yolov8x.pt
 __pycache__
 models
 stubs
+.conda
