@@ -2,7 +2,7 @@ import json
 import os
 import tensorflow as tf
 
-def coco_to_tfrecord_converter(self, json_fpath, img_fpath, output_path):
+def coco_to_tfrecord_converter(json_fpath, img_fpath, output_path):
     '''
     Converts a COCO JSON file to a TFRecord file.
 
@@ -36,13 +36,13 @@ def coco_to_tfrecord_converter(self, json_fpath, img_fpath, output_path):
             # Get annotations for the current image
             annotations = [ann for ann in coco_data['annotations'] if ann['image_id'] == image_id]
             # Generate a TF Example
-            tf_example = _create_tf_example(class_labels, image_info, annotations, img_fpath)
+            tf_example = _create_tf_example(image_info, annotations, img_fpath)
             # Write the TF Example to the TFRecord file
             writer.write(tf_example.SerializeToString())
 
     print(f'TFRecord file saved at {output_path}')
 
-def _create_tf_example(class_labels, image_info, annotations, img_fpath):
+def _create_tf_example(image_info, annotations, img_fpath):
     '''
     Creates a TensorFlow Example for an image and its annotations.
 
