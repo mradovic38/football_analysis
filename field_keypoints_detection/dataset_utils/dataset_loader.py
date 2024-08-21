@@ -1,4 +1,5 @@
 import tensorflow as tf
+from functools import partial
 
 def _parse_and_decode_function(example_proto):
     feature_description = {
@@ -16,7 +17,24 @@ def _parse_and_decode_function(example_proto):
 
     return image, keypoints
 
-def load_tfrecords(fpath):
-    raw_dataset = tf.data.TFRecordDataset(fpath)
-    parsed_and_decoded_dataset = raw_dataset.map(_parse_and_decode_function, num_parallel_calls=tf.data.AUTOTUNE)
-    return parsed_and_decoded_dataset
+def load_dataset(filenames):
+    ignore_order = tf.data.Options()
+    ignore_order.experimental_deterministic = False  # disable order, increase speed
+    dataset = tf.data.TFRecordDataset(
+        filenames
+    )  # automatically interleaves reads from multiple files
+    dataset = dataset.with_options(
+        ignore_order
+    )  # uses data as soon as it streams in, rather than in its original order
+    dataset = dataset.map(
+        partial(_parse_and_decode_function), num_parallel_calls=tf.data.experimental.AUTOTUNE
+    )
+    # returns a dataset of (image, label) pairs if labeled=True or just images if labeled=False
+    return dataset
+
+def get_dataset(filenames, batch_size):
+    dataset = load_dataset(filenames)
+    dataset = dataset.shuffle(2048)
+    dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    dataset = dataset.batch(batch_size)
+    return dataset

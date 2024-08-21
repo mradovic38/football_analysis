@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 
 class VisibleKeypointMSE(tf.keras.metrics.Metric):
@@ -36,10 +35,11 @@ class VisibilityAccuracy(tf.keras.metrics.Metric):
         y_pred_visibility = tf.cast(tf.round(y_pred[:, :, 2]), dtype=tf.int32)
 
         correct = tf.reduce_sum(tf.cast(tf.equal(y_true_visibility, y_pred_visibility), dtype=tf.float32))
-        total = tf.size(y_true_visibility, out_type=tf.float32)
+        total = tf.cast(tf.size(y_true_visibility, out_type=tf.int32), tf.float32)  # Corrected line
 
         self.correct.assign_add(correct)
         self.total.assign_add(total)
+
 
     def result(self):
         return self.correct / self.total
