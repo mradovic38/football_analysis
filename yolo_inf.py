@@ -1,7 +1,7 @@
 import os
 from ultralytics import YOLO
 
-model = YOLO('models/best.pt')
+model = YOLO('models/object-detection.pt')
 
 DATA_DIR = 'input_videos'
 

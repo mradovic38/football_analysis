@@ -1,11 +1,11 @@
 .ipynb_checkpoints
-detection-1
-test_project-2
-VA_Project-2
-yolov5xu.pt
 tracks
 runs
-yolov8x.pt
+Smart-Football_-Object-Detection-3
+football-field-detection-1
+yolov8n-pose.pt
+yolov8n.pt
+yolov8s.pt
 __pycache__
 models
 stubs
