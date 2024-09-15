@@ -8,7 +8,7 @@ class KeypointsTracker(Tracker):
         """
         pass
         
-    def track(self, frame, detections):
+    def track(self, frame, detection):
         """
         Apply the tracking alghoritm 
         """
