@@ -37,11 +37,10 @@ def read_video(path):
     
     return frames 
 
-def process_video(detector, input_video_path, output_video_path=None):
-
+def process_video(annotator, input_video_path, output_video_path=None):
     # Open the input video
     cap = cv2.VideoCapture(input_video_path)
-    
+
     # Prepare the video writer if output is required
     if output_video_path:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -54,12 +53,8 @@ def process_video(detector, input_video_path, output_video_path=None):
         if not ret:
             break
 
-        # Perform object and keypoint detection
-        object_results = detector.detect_objects(frame)
-        pose_results = detector.detect_keypoints(frame)
-
-        # Annotate the frame with detections
-        annotated_frame = detector.annotate_frame(frame, object_results, pose_results)
+        # Call the annotator to handle detection, tracking, and annotation
+        annotated_frame = annotator(frame)
 
         # Display the frame
         cv2.imshow('YOLOv8 Football Analysis', annotated_frame)
@@ -78,8 +73,6 @@ def process_video(detector, input_video_path, output_video_path=None):
         out.release()
     cv2.destroyAllWindows()
 
-# Run the function to process video
-process_video('path_to_your_input_video.mp4', 'output_video.avi')
 
 def save_video(out_frames, out_vpath, fps=30.0):
     '''
