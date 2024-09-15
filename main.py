@@ -1,5 +1,5 @@
 from utils import read_video, save_video
-from object_trackers import ObjectTracker
+from object_detection.trackers import ObjectTracker
 import cv2
 from club_assignment import ClubAssigner, Club
 from ball_to_player_assignment import BallToPlayerAssigner
@@ -14,7 +14,7 @@ def main():
     # return
 
     # Init tracker
-    tracker = ObjectTracker('models/best2.pt', 
+    tracker = ObjectTracker('models/object-detection.pt', 
                             classes_with_tracks=['goalkeeper', 'player', 'referee'],
                             classes_sv=['ball'])
 

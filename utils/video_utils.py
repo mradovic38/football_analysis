@@ -37,6 +37,49 @@ def read_video(path):
     
     return frames 
 
+def process_video(detector, input_video_path, output_video_path=None):
+
+    # Open the input video
+    cap = cv2.VideoCapture(input_video_path)
+    
+    # Prepare the video writer if output is required
+    if output_video_path:
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        frame_width = int(cap.get(3))
+        frame_height = int(cap.get(4))
+        out = cv2.VideoWriter(output_video_path, fourcc, 20, (frame_width, frame_height))
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Perform object and keypoint detection
+        object_results = detector.detect_objects(frame)
+        pose_results = detector.detect_keypoints(frame)
+
+        # Annotate the frame with detections
+        annotated_frame = detector.annotate_frame(frame, object_results, pose_results)
+
+        # Display the frame
+        cv2.imshow('YOLOv8 Football Analysis', annotated_frame)
+
+        # Write frame to output video if required
+        if output_video_path:
+            out.write(annotated_frame)
+
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Release everything
+    cap.release()
+    if output_video_path:
+        out.release()
+    cv2.destroyAllWindows()
+
+# Run the function to process video
+process_video('path_to_your_input_video.mp4', 'output_video.avi')
 
 def save_video(out_frames, out_vpath, fps=30.0):
     '''
