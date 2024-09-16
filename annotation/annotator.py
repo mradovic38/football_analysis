@@ -1,6 +1,7 @@
 from .abstract_annotator import AbstractAnnotator
 from .object_annotator import ObjectAnnotator
 from .keypoints_annotator import KeypointsAnnotator
+import cv2
 
 class Annotator(AbstractAnnotator):
 
@@ -14,16 +15,15 @@ class Annotator(AbstractAnnotator):
 
     def __call__(self, frame):
         obj_detections = self.obj_tracker.detect(frame)
-        kp_tracks = {}
-        #kp_detections = self.kp_tracker.detect(frame)
+        kp_detections = self.kp_tracker.detect(frame)
 
         obj_tracks = self.obj_tracker.track(obj_detections)
-        #kp_tracks = self.kp_tracker.track(kp_detections)
+        kp_tracks = self.kp_tracker.track(kp_detections)
 
         print(obj_tracks)
 
         self.club_assigner.assign_clubs(frame, obj_tracks)
-
+        
         self.ball_to_player_assigner.assign(obj_tracks)
 
         all_tracks = {'object': obj_tracks, 'keypoints': kp_tracks}
@@ -33,6 +33,7 @@ class Annotator(AbstractAnnotator):
     
     def annotate(self, frame, tracks):
         frame = self.obj_annotator.annotate(frame, tracks['object'])
-        #frame = self.kp_tracker.annotate(frame, tracks['keypoints'])
+        frame = self.kp_annotator.annotate(frame, tracks['keypoints'])
+
 
         return frame

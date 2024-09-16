@@ -13,3 +13,4 @@ stubs
 config.py
 analysis/data/keypoints
 old-object_tracker.py
+test.avi

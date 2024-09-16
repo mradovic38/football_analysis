@@ -1,4 +1,4 @@
-from utils import get_bbox_center, point_distance
+from utils import get_bbox_center, point_distance, get_feet_pos
 from .ball_possession_tracker import PossessionTracker
 
 class BallToPlayerAssigner:
@@ -27,10 +27,9 @@ class BallToPlayerAssigner:
         for player_id, player in players.items():
             player_bbox = player['bbox']
 
-            l_dis = point_distance((player_bbox[0], player_bbox[3]), ball_pos)
-            r_dis = point_distance((player_bbox[2], player_bbox[3]), ball_pos)
+            player_pos = get_feet_pos(player_bbox)
 
-            dis = min(l_dis, r_dis)
+            dis = point_distance(ball_pos, player_pos)
 
             if dis <= min_dis:
                 min_dis = dis
@@ -38,6 +37,7 @@ class BallToPlayerAssigner:
 
         if player_w_ball!=-1 and 'club' in players[player_w_ball]:
             self.possession_tracker.add_possession(players[player_w_ball]['club'], players[player_w_ball]['club_color'])
+            tracks['player'][player_w_ball]['has_ball'] = True
         else:
             self.possession_tracker.add_possession(-1)
 

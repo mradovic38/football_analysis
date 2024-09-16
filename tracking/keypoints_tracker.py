@@ -1,10 +1,12 @@
 from tracking.abstract_tracker import AbstractTracker
+
 import supervision as sv
+import cv2
 
 class KeypointsTracker(AbstractTracker):
 
 
-    def __init__(self, model_path, conf=0.1, kp_conf=0.35):
+    def __init__(self, model_id, conf=0.1, kp_conf=0.35):
         """
         Initialize KeypointsTracker for tracking keypoints.
         
@@ -12,7 +14,7 @@ class KeypointsTracker(AbstractTracker):
             model_path (str): Path to the YOLO model for keypoints.
             conf (float): Confidence threshold for keypoints.
         """
-        super().__init__(model_path, conf)  # Call the Tracker base class constructor
+        super().__init__(model_id, conf)  # Call the Tracker base class constructor
         self.kp_conf = kp_conf # Keypoint Confidence Threshold
         self.tracks = []  # Initialize tracks list
 
@@ -28,11 +30,11 @@ class KeypointsTracker(AbstractTracker):
             list: Detected keypoints.
         """
 
-        preds = list(self.model.predict([frame], self.conf))[0]
-
-        keypoints = [(kp['x'], kp['y'], kp['confidence']) for kp in preds['keypoints'] if kp['confidence'] > self.kp_conf]
-        return keypoints
-        
+        frame = frame.copy()
+        frame = self._adjust_contrast(frame)
+        self.frame = frame
+        return self.model.infer(frame, self.conf)[0]
+    
     def track(self, detection):
         """
         Perform keypoint tracking based on detections.
@@ -43,31 +45,50 @@ class KeypointsTracker(AbstractTracker):
         Returns:
             dict: Tracking data for the last frame.
         """
-        
-        detections = self.convert_keypoints_to_detections(detection)
-        detection_sv = sv.Detections.from_ultralytics(detections)
-        detection_tracks = self.tracker.update_with_detections(detection_sv)
 
-        frame_keypoints = {}
-        for track in detection_tracks:
-            bbox, class_id, track_id = track[:3]
-            x_center, y_center = (bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2
-            frame_keypoints[track_id] = (x_center, y_center)
+        detection = sv.KeyPoints.from_inference(detection)
 
-        # Save for the current frame and return only the last frame data
-        self.tracks.append(frame_keypoints)
+
+        # Extract xy coordinates, confidence, and the number of keypoints
+        xy = detection.xy[0]  # Shape: (32, 2), assuming there are 32 keypoints
+        confidence = detection.confidence[0]  # Shape: (32,), confidence values
+
+
+        # Create the map of keypoints with confidence greater than the threshold
+        filtered_keypoints = {
+            i: (coords[0], coords[1])  # i is the key (index), (x, y) are the values
+            for i, (coords, conf) in enumerate(zip(xy, confidence))
+            if conf > self.kp_conf
+        }
+
+        self.tracks.append(detection)
         self.cur_frame += 1
-        return frame_keypoints
 
-    def _convert_keypoints_to_detections(self, keypoints_data):
+        return filtered_keypoints
+    
+
+    def _adjust_contrast(self, frame):
         """
-        Convert keypoints data to detections for tracking.
+        Adjust the contrast of the frame using Histogram Equalization.
         
         Args:
-            keypoints_data (list): List of keypoints.
+            frame (array): The input image frame.
         
         Returns:
-            list: Converted detections.
+            array: The frame with adjusted contrast.
         """
-        detections = [(x - 4, y - 4, x + 4, y + 4, confidence) for x, y, confidence in keypoints_data]
-        return detections
+        # Check if the frame is colored (3 channels). If so, convert to grayscale for histogram equalization.
+        if len(frame.shape) == 3 and frame.shape[2] == 3:
+            # Convert to YUV color space
+            yuv = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)
+            
+            # Apply histogram equalization to the Y channel (luminance)
+            yuv[:, :, 0] = cv2.equalizeHist(yuv[:, :, 0])
+            
+            # Convert back to BGR format
+            frame_equalized = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+        else:
+            # If the frame is already grayscale, apply histogram equalization directly
+            frame_equalized = cv2.equalizeHist(frame)
+
+        return frame_equalized

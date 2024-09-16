@@ -41,38 +41,48 @@ def process_video(annotator, input_video_path, output_video_path=None):
     # Open the input video
     cap = cv2.VideoCapture(input_video_path)
 
+    if not cap.isOpened():
+        print(f"Error opening file: {input_video_path}")
+        return
+
+    # Get video properties
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
     # Prepare the video writer if output is required
     if output_video_path:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        frame_width = int(cap.get(3))
-        frame_height = int(cap.get(4))
-        out = cv2.VideoWriter(output_video_path, fourcc, 20, (frame_width, frame_height))
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret or frame is None or frame.size == 0:
-            print("Error: Empty or invalid frame.")
-            break
+    delay = int(1000 / fps)
 
-        # Call the annotator to handle detection, tracking, and annotation
-        annotated_frame = annotator(frame)
+    (succ, img) = cap.read()
 
-        if annotated_frame is not None and annotated_frame.size > 0:
-            cv2.imshow('YOLOv8 Football Analysis', annotated_frame)
+    while succ:
+        img = cv2.resize(img,(1920,1080),fx=0,fy=0, interpolation = cv2.INTER_CUBIC)
+        # Annotate the frame if annotator function is provided
+        if annotator:
+            img = annotator(img)
+
+        cv2.imshow("YOLO", img)
 
         # Write frame to output video if required
         if output_video_path:
-            out.write(annotated_frame)
+            out.write(img)
 
-        # Break the loop if 'q' is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        key = cv2.waitKey(delay) & 0xFF
+        if key == ord('q'):
             break
 
-    # Release everything
+        (succ, img) = cap.read()
+
     cap.release()
     if output_video_path:
         out.release()
     cv2.destroyAllWindows()
+
+
 
 
 def save_video(out_frames, out_vpath, fps=30.0):

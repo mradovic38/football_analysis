@@ -17,13 +17,13 @@ def main():
 
 
     obj_tracker = ObjectTracker(
-        model_path = 'models/weights/object-detection.pt',
+        model_id = 'smart-football-object-detection-icwha/3',
         cls_tracks=['goalkeeper', 'player', 'referee'],
         cls_sv=['ball']
     )
 
     kp_tracker = KeypointsTracker(
-        model_path='models/weights/keypoints-detection.pt',
+        model_id='football-field-detection-f07vi-apxzb/1',
         conf=.3
     )
 
@@ -39,7 +39,7 @@ def main():
 
     annotator = Annotator(obj_tracker, kp_tracker, club_assigner, ball_player_assigner)
     
-    process_video(annotator, 'input_videos/08fd33_6.mp4')
+    process_video(annotator, 'input_videos/08fd33_6.mp4', 'output_videos/test.avi')
 
 
 

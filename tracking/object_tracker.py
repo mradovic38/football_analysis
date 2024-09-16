@@ -1,9 +1,11 @@
+from inference import get_model
+
 import supervision as sv
 from tracking.abstract_tracker import AbstractTracker
 
 class ObjectTracker(AbstractTracker):
 
-    def __init__(self, model_path, cls_tracks, cls_sv, conf=0.1):
+    def __init__(self, model_id, cls_tracks, cls_sv, conf=0.1):
         """
         Initialize ObjectTracker with class-specific tracking and detection.
 
@@ -13,10 +15,15 @@ class ObjectTracker(AbstractTracker):
             cls_sv (list): List of classes for detection and annotation.
             conf (float): Confidence threshold for detection.
         """
-        super().__init__(model_path, conf)  # Call the Tracker base class constructor
+        super().__init__(model_id, conf)  # Call the Tracker base class constructor
+        
         self.cls_tracks = cls_tracks  # Classes to use tracker on
         self.cls_sv = cls_sv  # Classes to not use tracker on
+
+        self.tracker = sv.ByteTrack()  # Initialize ByteTracker
+        self.tracker.reset()
         self.all_tracks = {class_name: {} for class_name in self.cls_sv + self.cls_tracks}  # Initialize tracks
+        
 
     def detect(self, frame):
         '''
@@ -28,7 +35,7 @@ class ObjectTracker(AbstractTracker):
         Returns:
             array: Detection results.
         '''
-        return list(self.model.predict([frame], self.conf))[0]
+        return self.model.infer(frame, self.conf)[0]
         
     def track(self, detection):
         '''
@@ -41,31 +48,13 @@ class ObjectTracker(AbstractTracker):
             dict: Dictionary containing tracks for the last frame.
         '''
         # Convert Ultralytics detections to supervision
-        detection_sv = sv.Detections.from_ultralytics(detection)
+        detection_sv = sv.Detections.from_inference(detection)
+
 
         # Perform ByteTracker object tracking on the detections
         detection_tracks = self.tracker.update_with_detections(detection_sv)
 
-        # Clear current frame tracking information
-        self.current_frame_tracks = {class_name: {} for class_name in self.cls_sv + self.cls_tracks}
-
-        for frame_detection in detection_tracks:
-            bbox = frame_detection[0].tolist()
-            class_id = frame_detection[3]
-            track_id = frame_detection[4]
-
-            if detection.names[class_id] in self.cls_tracks:
-                if track_id not in self.current_frame_tracks[detection.names[class_id]]:
-                    self.current_frame_tracks[detection.names[class_id]][track_id] = {'bbox': bbox}
-
-        # Update tracks with tracked objects
-        for frame_detection in detection_sv:
-            bbox = frame_detection[0].tolist()
-            class_id = frame_detection[3]
-            
-            if detection.names[class_id] in self.cls_sv:
-                if track_id not in self.current_frame_tracks[detection.names[class_id]]:
-                    self.current_frame_tracks[detection.names[class_id]][track_id] = {'bbox': bbox}
+        self.current_frame_tracks = self._detections_mapper(detection_tracks, self.cls_sv + self.cls_tracks)
         
         # Store the current frame's tracking information in all_tracks
         self.all_tracks[self.cur_frame] = self.current_frame_tracks.copy()
@@ -75,3 +64,27 @@ class ObjectTracker(AbstractTracker):
 
         # Return only the last frame's data
         return self.current_frame_tracks
+    
+
+    def _detections_mapper(self, detections, class_names):
+        # Initialize the dictionary
+        result = {class_name: {} for class_name in class_names}
+        
+        # Extract relevant data from detections
+        xyxy = detections.xyxy  # Bounding boxes
+        class_ids = detections.class_id  # Class IDs
+        tracker_ids = detections.tracker_id  # Tracker IDs
+
+        # Iterate over all detections
+        for bbox, class_id, track_id in zip(xyxy, class_ids, tracker_ids):
+            class_name = class_names[class_id]
+
+            # Create class_name entry if not already present
+            if class_name not in result:
+                result[class_name] = {}
+
+            # Add track_id entry if not already present
+            if track_id not in result[class_name]:
+                result[class_name][track_id] = {'bbox': bbox.tolist()}
+
+        return result

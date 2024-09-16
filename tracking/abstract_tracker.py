@@ -1,10 +1,14 @@
+from config import ROBOFLOW_API_KEY
+
 from abc import ABC, abstractmethod
 from ultralytics import YOLO
 import supervision as sv
+from inference import get_model
+
 
 class AbstractTracker(ABC):
 
-    def __init__(self, model_path, conf=0.1):
+    def __init__(self, model_id, conf=0.1):
         """
         Load the model from the given path and set the confidence threshold.
         
@@ -12,9 +16,8 @@ class AbstractTracker(ABC):
             model_path (str): Path to the detection model.
             conf (float): Confidence threshold for detections.
         """
-        self.model = YOLO(model_path)  # Load the YOLO model
+        self.model = get_model(model_id=model_id, api_key=ROBOFLOW_API_KEY)  # Load the YOLO model
         self.conf = conf  # Set confidence threshold
-        self.tracker = sv.ByteTrack()  # Initialize ByteTracker
         self.cur_frame = 0  # Initialize current frame counter
 
     @abstractmethod

@@ -1,7 +1,10 @@
 import os
 from ultralytics import YOLO
 
-model = YOLO('models/object-detection.pt')
+import torch
+print(torch.cuda.is_available())  # Should return True if CUDA is availabl
+
+model = YOLO('models/weights/object-detection.pt')
 
 DATA_DIR = 'input_videos'
 
