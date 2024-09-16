@@ -1,6 +1,5 @@
 # from utils import read_video, save_video
 
-# import cv2
 # from club_assignment import ClubAssigner, Club
 # from ball_to_player_assignment import BallToPlayerAssigner
 # from cam_movement import CamMovementEstimator
@@ -10,6 +9,8 @@
 from utils import process_video
 
 from tracking import ObjectTracker, KeypointsTracker
+from club_assignment import ClubAssigner, Club
+from ball_to_player_assignment import BallToPlayerAssigner
 from annotation import Annotator
 
 def main():
@@ -17,8 +18,8 @@ def main():
 
     obj_tracker = ObjectTracker(
         model_path = 'models/weights/object-detection.pt',
-        classes_with_tracks=['goalkeeper', 'player', 'referee'],
-        classes_sv=['ball']
+        cls_tracks=['goalkeeper', 'player', 'referee'],
+        cls_sv=['ball']
     )
 
     kp_tracker = KeypointsTracker(
@@ -26,13 +27,19 @@ def main():
         conf=.3
     )
 
+    # Assign Clubs
+    club1 = Club('Club1', (255, 255, 255), (0, 0, 0))
+    club2 = Club('Club2', (179, 255, 147), (239, 156, 132))
 
-    annotator = Annotator(obj_tracker, kp_tracker)
+
+    club_assigner = ClubAssigner(club1, club2)
+
+    ball_player_assigner = BallToPlayerAssigner(club1.name, club2.name)
+
+
+    annotator = Annotator(obj_tracker, kp_tracker, club_assigner, ball_player_assigner)
     
-    process_video(annotator, 'input_videos/08fd33_6.mp4', 'output_videos/out_video.avi')
-
-
-    
+    process_video(annotator, 'input_videos/08fd33_6.mp4')
 
 
 

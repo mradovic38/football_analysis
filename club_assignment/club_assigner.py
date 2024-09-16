@@ -77,37 +77,38 @@ class ClubAssigner:
         return list(self.club_colors.keys())[team_id], pred
     
 
-    def assign_clubs(self, frames, tracks):
-        for cur_frame, player_track in enumerate(tracks['goalkeeper']):
-            to_delete = []
-            for player_id, track in player_track.items():
-                bbox = track['bbox']
-                club, pred = self.get_player_club(frames[cur_frame], bbox, player_id)
-                
-                tracks['goalkeeper'][cur_frame][player_id]['club'] = club
-                tracks['goalkeeper'][cur_frame][player_id]['club_color'] = self.club_colors[club]
+    def assign_clubs(self, frame, tracks):
+        
+        to_delete = []
+        for player_id, track in tracks['goalkeeper'].items():
+            bbox = track['bbox']
+            club, pred = self.get_player_club(frame, bbox, player_id)
+            
+            tracks['goalkeeper'][player_id]['club'] = club
+            tracks['goalkeeper'][player_id]['club_color'] = self.club_colors[club]
 
-                #if pred <= 1:
-                    #tracks['player'][cur_frame][player_id] = tracks['goalkeeper'][cur_frame][player_id]
-                    #to_delete.append(player_id) 
-            for i in to_delete:            
-                tracks['goalkeeper'][cur_frame].pop(i)
+            #if pred <= 1:
+                #tracks['player'][cur_frame][player_id] = tracks['goalkeeper'][cur_frame][player_id]
+                #to_delete.append(player_id) 
+        # for i in to_delete:            
+        #     tracks['goalkeeper'].pop(i)
 
-        for cur_frame, player_track in enumerate(tracks['player']):
-            to_delete = []
-            for player_id, track in player_track.items():
-                bbox = track['bbox']
-                club, pred = self.get_player_club(frames[cur_frame], bbox, player_id)
-                
-                tracks['player'][cur_frame][player_id]['club'] = club
-                tracks['player'][cur_frame][player_id]['club_color'] = self.club_colors[club]
+        to_delete = []
+        for player_id, track in tracks['player'].items():
+            bbox = track['bbox']
+            club, pred = self.get_player_club(frame, bbox, player_id)
+            
+            tracks['player'][player_id]['club'] = club
+            tracks['player'][player_id]['club_color'] = self.club_colors[club]
 
-                if pred > 1:
-                    tracks['goalkeeper'][cur_frame][player_id] = tracks['player'][cur_frame][player_id]
-                    to_delete.append(player_id) 
+            if pred > 1:
+                tracks['goalkeeper'][player_id] = tracks['player'][player_id]
+                to_delete.append(player_id) 
 
-            for i in to_delete:            
-                tracks['player'][cur_frame].pop(i)
+        for i in to_delete:            
+            tracks['player'].pop(i)
+
+        return tracks
 
                 
 

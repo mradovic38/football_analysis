@@ -6,12 +6,23 @@ class BallToPlayerAssigner:
         self.max_ball_distance = max_ball_distance
         self.possession_tracker = PossessionTracker(club1_name, club2_name)
     
-    def assign(self, players, ball_bbox):
+    def assign(self, tracks):
+
+        player_w_ball = -1
+
+        if 'ball' not in tracks or not tracks['ball']:
+            self.possession_tracker.add_possession(-1)
+            return player_w_ball
+
+        players = {**tracks['player'], **tracks['goalkeeper']}
+        first_key = next(iter(tracks['ball']))  # Get the first key in tracks['ball']
+        ball_bbox = tracks['ball'][first_key]['bbox']  # Access the 'bbox' of the first key
+
         ball_pos = get_bbox_center(ball_bbox)
 
         min_dis = self.max_ball_distance
 
-        player_w_ball = -1
+       
 
         for player_id, player in players.items():
             player_bbox = player['bbox']

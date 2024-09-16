@@ -28,7 +28,7 @@ class ObjectTracker(AbstractTracker):
         Returns:
             array: Detection results.
         '''
-        return self.model.predict(frame, self.conf)
+        return list(self.model.predict([frame], self.conf))[0]
         
     def track(self, detection):
         '''

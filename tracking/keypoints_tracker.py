@@ -28,7 +28,7 @@ class KeypointsTracker(AbstractTracker):
             list: Detected keypoints.
         """
 
-        preds = self.model.predict(frame, self.conf)[0]
+        preds = list(self.model.predict([frame], self.conf))[0]
 
         keypoints = [(kp['x'], kp['y'], kp['confidence']) for kp in preds['keypoints'] if kp['confidence'] > self.kp_conf]
         return keypoints

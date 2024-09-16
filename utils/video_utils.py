@@ -50,14 +50,15 @@ def process_video(annotator, input_video_path, output_video_path=None):
 
     while cap.isOpened():
         ret, frame = cap.read()
-        if not ret:
+        if not ret or frame is None or frame.size == 0:
+            print("Error: Empty or invalid frame.")
             break
 
         # Call the annotator to handle detection, tracking, and annotation
         annotated_frame = annotator(frame)
 
-        # Display the frame
-        cv2.imshow('YOLOv8 Football Analysis', annotated_frame)
+        if annotated_frame is not None and annotated_frame.size > 0:
+            cv2.imshow('YOLOv8 Football Analysis', annotated_frame)
 
         # Write frame to output video if required
         if output_video_path:
