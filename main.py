@@ -7,11 +7,12 @@
 
 
 from utils import process_video
-
 from tracking import ObjectTracker, KeypointsTracker
 from club_assignment import ClubAssigner, Club
 from ball_to_player_assignment import BallToPlayerAssigner
 from annotation import Annotator
+
+import numpy as np
 
 def main():
 
@@ -36,8 +37,20 @@ def main():
 
     ball_player_assigner = BallToPlayerAssigner(club1.name, club2.name)
 
+    top_down_keypoints = np.array([
+        [98, 19], [98, 268], [98, 460], [98, 773], [98, 964], [98, 1199], # 0-5
+        [188, 460], [188, 773], # 6-7
+        [292, 616], # 8
+        [380, 268], [380, 481], [380, 752], [380, 964], # 9-12
+        [1017, 19], [1017, 460], [1017, 773], [1017, 1199], # 13-16
+        [1641, 268], [1641, 481], [1641, 752], [1641, 964], # 17-20
+        [1733, 616], # 21
+        [1833, 453], [1833, 767], # 22-23
+        [1923, 19], [1923, 268], [1923, 460], [1923, 773], [1923, 964], [1923, 1199], # 24-29
+        [861, 616], [1174, 616] # 30-31
+    ])
 
-    annotator = Annotator(obj_tracker, kp_tracker, club_assigner, ball_player_assigner)
+    annotator = Annotator(obj_tracker, kp_tracker, club_assigner, ball_player_assigner, top_down_keypoints, '')
     
     process_video(annotator, 'input_videos/08fd33_6.mp4', 'output_videos/test.avi')
 
