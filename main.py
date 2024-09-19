@@ -50,7 +50,7 @@ def main():
         [861, 616], [1174, 616] # 30-31
     ])
 
-    annotator = Annotator(obj_tracker, kp_tracker, club_assigner, ball_player_assigner, top_down_keypoints, '')
+    annotator = Annotator(obj_tracker, kp_tracker, club_assigner, ball_player_assigner, top_down_keypoints, 'analysis/data/2d_football_pitch.png')
     
     process_video(annotator, 'input_videos/08fd33_6.mp4', 'output_videos/test.avi')
 
