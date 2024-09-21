@@ -12,7 +12,7 @@ class ProjectionAnnotator(AbstractAnnotator):
         luminance = (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2])  # Luminance formula
         return luminance < 128
 
-    def _draw_outline(self, frame, pos, shape='circle', size=5, is_dark=True):
+    def _draw_outline(self, frame, pos, shape='circle', size=15, is_dark=True):
         """
         Draw a white or black outline around the object based on color and shape.
         """
@@ -48,63 +48,69 @@ class ProjectionAnnotator(AbstractAnnotator):
         elif shape == 'plus':
             # Draw an outline for the plus sign (ball)
             cv2.line(frame, (int(pos[0]) - (size), int(pos[1])), 
-                    (int(pos[0]) + (size), int(pos[1])), color=outline_color, thickness=6)
+                    (int(pos[0]) + (size), int(pos[1])), color=outline_color, thickness=10)
             cv2.line(frame, (int(pos[0]), int(pos[1]) - (size)), 
-                    (int(pos[0]), int(pos[1]) + (size)), color=outline_color, thickness=6)
+                    (int(pos[0]), int(pos[1]) + (size)), color=outline_color, thickness=10)
 
     def annotate(self, frame, tracks):
-        # Iterate through the tracks and annotate players, goalkeepers, referees, and the ball
+        # Draw all other objects (players, goalkeepers, referees) first
         for class_name, track_data in tracks.items():
-            for track_id, track_info in track_data.items():
-                # Get the projected position on the field
+            if class_name != 'ball':  # Skip the ball for now, we'll draw it later
+                for track_id, track_info in track_data.items():
+                    # Get the projected position on the field
+                    proj_pos = track_info['projection']  # (x, y) tuple
+                    color = track_info.get('club_color', (255, 255, 255))  # Default color if not provided
+                    is_dark_color = self._is_color_dark(color)
+
+                    if class_name == 'player' or class_name == 'goalkeeper':
+                        # Determine if the player or goalkeeper has possession of the ball
+                        if track_info.get('has_ball', False):
+                            # Draw a player/goalkeeper with possession accent (green ring)
+                            shape = 'square' if class_name == 'goalkeeper' else 'circle'
+                            self._draw_outline(frame, proj_pos, shape=shape, is_dark=is_dark_color)
+                            cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=20, color=(0, 255, 0), thickness=2)  # Green ring for possession
+
+                            # Draw the player or goalkeeper marker (circle or square)
+                            if shape == 'circle':
+                                cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=15, color=color, thickness=-1)
+                            else:
+                                top_left = (int(proj_pos[0]) - 15, int(proj_pos[1]) - 15)
+                                bottom_right = (int(proj_pos[0]) + 15, int(proj_pos[1]) + 15)
+                                cv2.rectangle(frame, top_left, bottom_right, color=color, thickness=-1)
+
+                        else:
+                            # Draw a player/goalkeeper without possession
+                            shape = 'square' if class_name == 'goalkeeper' else 'circle'
+                            self._draw_outline(frame, proj_pos, shape=shape, is_dark=is_dark_color)
+                            if shape == 'circle':
+                                cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=15, color=color, thickness=-1)
+                            else:
+                                top_left = (int(proj_pos[0]) - 15, int(proj_pos[1]) - 15)
+                                bottom_right = (int(proj_pos[0]) + 15, int(proj_pos[1]) + 15)
+                                cv2.rectangle(frame, top_left, bottom_right, color=color, thickness=-1)
+
+                    elif class_name == 'referee':
+                        # Draw a circle with black dotted outline for the referee
+                        self._draw_outline(frame, proj_pos, shape='dashed_circle', is_dark=is_dark_color)
+
+        # Now draw the ball last so it appears on top
+        if 'ball' in tracks:
+            for track_id, track_info in tracks['ball'].items():
                 proj_pos = track_info['projection']  # (x, y) tuple
-                color = track_info.get('club_color', (255, 255, 255))  # Default color if not provided
-                is_dark_color = self._is_color_dark(color)
 
-                if class_name == 'player' or class_name == 'goalkeeper':
-                    # Determine if the player or goalkeeper has possession of the ball
-                    if track_info.get('has_ball', False):
-                        # Draw a player/goalkeeper with possession accent (green ring)
-                        shape = 'square' if class_name == 'goalkeeper' else 'circle'
-                        self._draw_outline(frame, proj_pos, shape=shape, size=5, is_dark=is_dark_color)
-                        cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=9, color=(0, 255, 0), thickness=2)  # Green ring for possession
+                # First, draw the outline for the ball 
+                is_dark_color = self._is_color_dark((0, 255, 255))  # Yellow color
+                self._draw_outline(frame, proj_pos, shape='plus', is_dark=is_dark_color)
 
-                        # Draw the player or goalkeeper marker (circle or square)
-                        if shape == 'circle':
-                            cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=5, color=color, thickness=-1)
-                        else:
-                            top_left = (int(proj_pos[0]) - 5, int(proj_pos[1]) - 5)
-                            bottom_right = (int(proj_pos[0]) + 5, int(proj_pos[1]) + 5)
-                            cv2.rectangle(frame, top_left, bottom_right, color=color, thickness=-1)
+                # Then, draw the ball as a yellow plus sign
+                color = (0, 255, 255)  # Yellow
+                cv2.line(frame, (int(proj_pos[0]) - 15, int(proj_pos[1])), 
+                        (int(proj_pos[0]) + 15, int(proj_pos[1])), color=color, thickness=6)
+                cv2.line(frame, (int(proj_pos[0]), int(proj_pos[1]) - 15), 
+                        (int(proj_pos[0]), int(proj_pos[1]) + 15), color=color, thickness=6)
 
-                    else:
-                        # Draw a player/goalkeeper without possession
-                        shape = 'square' if class_name == 'goalkeeper' else 'circle'
-                        self._draw_outline(frame, proj_pos, shape=shape, size=5, is_dark=is_dark_color)
-                        if shape == 'circle':
-                            cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=5, color=color, thickness=-1)
-                        else:
-                            top_left = (int(proj_pos[0]) - 5, int(proj_pos[1]) - 5)
-                            bottom_right = (int(proj_pos[0]) + 5, int(proj_pos[1]) + 5)
-                            cv2.rectangle(frame, top_left, bottom_right, color=color, thickness=-1)
-
-                elif class_name == 'referee':
-                    # Draw a circle with black dotted outline for the referee
-                    self._draw_outline(frame, proj_pos, shape='dashed_circle', size=5, is_dark=is_dark_color)
-                    #cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=5, color=(0, 0, 0), thickness=1)
-
-                elif class_name == 'ball':
-                    # First, draw the outline for the ball 
-                    self._draw_outline(frame, proj_pos, shape='plus', is_dark=is_dark_color)
-
-                    # Then, draw the ball as a yellow plus sign
-                    color = (0, 255, 255)  # Yellow
-                    cv2.line(frame, (int(proj_pos[0]) - 5, int(proj_pos[1])), 
-                             (int(proj_pos[0]) + 5, int(proj_pos[1])), color=color, thickness=2)
-                    cv2.line(frame, (int(proj_pos[0]), int(proj_pos[1]) - 5), 
-                             (int(proj_pos[0]), int(proj_pos[1]) + 5), color=color, thickness=2)
+        return frame
 
                     
 
-        return frame
     

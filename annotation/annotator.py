@@ -3,7 +3,9 @@ from .object_annotator import ObjectAnnotator
 from .keypoints_annotator import KeypointsAnnotator
 from .projection_annotator import ProjectionAnnotator
 from position_mappers import ObjectPositionMapper
+
 import cv2
+import numpy as np
 
 class Annotator(AbstractAnnotator):
 
@@ -46,7 +48,32 @@ class Annotator(AbstractAnnotator):
         # Project the player and object positions on the football field image
         projection_frame = self.projection_annotator.annotate(self.field_image.copy(), tracks['object'])
 
-        # Combine the projection frame and the original frame into one
-        #combined_frame = cv2.addWeighted(frame, 0.7, projection_frame, 0.3, 0)
+        # Target canvas size
+        canvas_width, canvas_height = 1920, 1080
+        
+        # Get dimensions of the original frame and projection frame
+        h_frame, w_frame, _ = frame.shape
+        h_proj, w_proj, _ = projection_frame.shape
 
-        return projection_frame
+        # Scale the frames (keep original size of the main frame)
+        scale_proj = .6  # Scale the projection to 60% of its original size
+        new_w_proj = int(w_proj * scale_proj)
+        new_h_proj = int(h_proj * scale_proj)
+        projection_resized = cv2.resize(projection_frame, (new_w_proj, new_h_proj))
+
+        # Create a blank canvas of 1920x1080
+        combined_frame = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
+
+        # Copy the main frame onto the canvas (keep it full-size)
+        combined_frame[:h_frame, :w_frame] = frame
+
+        # Set the position for the projection frame at the bottom-middle
+        x_offset = (canvas_width - new_w_proj) // 2
+        y_offset = canvas_height - new_h_proj - 25  # 50px margin from bottom
+
+        # Blend the projection with 75% visibility (alpha transparency)
+        alpha = 0.75
+        overlay = combined_frame[y_offset:y_offset + new_h_proj, x_offset:x_offset + new_w_proj]
+        cv2.addWeighted(projection_resized, alpha, overlay, 1 - alpha, 0, overlay)
+
+        return combined_frame

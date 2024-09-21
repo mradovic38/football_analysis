@@ -51,16 +51,17 @@ def process_video(annotator, input_video_path, output_video_path=None):
     fps = cap.get(cv2.CAP_PROP_FPS)
 
     # Prepare the video writer if output is required
+    out = None
     if output_video_path:
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
 
     delay = int(1000 / fps)
-
     (succ, img) = cap.read()
 
     while succ:
-        img = cv2.resize(img,(1920,1080),fx=0,fy=0, interpolation = cv2.INTER_CUBIC)
+        img = cv2.resize(img, (1920, 1080), fx=0, fy=0, interpolation=cv2.INTER_CUBIC)
+        
         # Annotate the frame if annotator function is provided
         if annotator:
             img = annotator(img)
@@ -68,7 +69,7 @@ def process_video(annotator, input_video_path, output_video_path=None):
         cv2.imshow("YOLO", img)
 
         # Write frame to output video if required
-        if output_video_path:
+        if out:
             out.write(img)
 
         key = cv2.waitKey(delay) & 0xFF
@@ -77,8 +78,9 @@ def process_video(annotator, input_video_path, output_video_path=None):
 
         (succ, img) = cap.read()
 
+    # Release resources properly
     cap.release()
-    if output_video_path:
+    if out:
         out.release()
     cv2.destroyAllWindows()
 
