@@ -96,7 +96,7 @@ class Annotator(AbstractAnnotator):
 
         # Position and size for the overlay (top-left with 20px margin)
         overlay_width = 500
-        overlay_height = 80
+        overlay_height = 100
         gap_x = 20  # 20px from the left
         gap_y = 20  # 20px from the top
 
@@ -109,27 +109,25 @@ class Annotator(AbstractAnnotator):
         # Write "Possession" above the progress bar
         cv2.putText(frame, 'Possession:', (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, .7, (255, 255, 255), 1)
 
-        # Position and size for the possession ba (20px margin)
+        # Position and size for the possession bar (20px margin)
         bar_x = text_x
         bar_y = text_y + 25
         bar_width = overlay_width - bar_x
         bar_height = 15
 
-        possession = self.possession_tracker.possession[-1]
-
         # Get possession data from possession_dict
+        possession = self.possession_tracker.possession[-1]
         possession_club1 = possession[0]
         possession_club2 = possession[1]
 
         # Calculate sizes for each possession segment in pixels
-        club1_width = int(bar_width * (possession_club1))
-        club2_width = int(bar_width * (possession_club2))
+        club1_width = int(bar_width * possession_club1)
+        club2_width = int(bar_width * possession_club2)
         neutral_width = bar_width - club1_width - club2_width
 
         club1_color = self.club_assigner.club1.player_jersey_color
         club2_color = self.club_assigner.club2.player_jersey_color
         neutral_color = (128, 128, 128)
-
 
         # Draw club 1's possession (on the left)
         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + club1_width, bar_y + bar_height), club1_color, -1)
@@ -142,6 +140,25 @@ class Annotator(AbstractAnnotator):
 
         # Draw outline for the entire progress bar
         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height), (0, 0, 0), 2)
-       
+
+        # Calculate the position for the possession text under the bars
+        possession_club1_text = f'{int(possession_club1 * 100)}%'
+        possession_club2_text = f'{int(possession_club2 * 100)}%'
+
+        # Text for club 1
+        club1_text_x = bar_x + club1_width // 2 - 20  # Center of club 1's possession bar
+        club1_text_y = bar_y + bar_height + 20  # 20 pixels below the bar
+        cv2.putText(frame, possession_club1_text, (club1_text_x, club1_text_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)  # Black outline
+        cv2.putText(frame, possession_club1_text, (club1_text_x, club1_text_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, club1_color, 1)  # Club 1's color
+
+        # Text for club 2
+        club2_text_x = bar_x + club1_width + neutral_width + club2_width // 2 - 20  # Center of club 2's possession bar
+        club2_text_y = bar_y + bar_height + 20  # 20 pixels below the bar
+        cv2.putText(frame, possession_club2_text, (club2_text_x, club2_text_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)  # Black outline
+        cv2.putText(frame, possession_club2_text, (club2_text_x, club2_text_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, club2_color, 1)  # Club 2's color
 
         return frame
