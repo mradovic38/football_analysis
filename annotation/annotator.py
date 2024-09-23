@@ -16,9 +16,18 @@ class Annotator(AbstractAnnotator):
         self.kp_annotator = KeypointsAnnotator()
         self.club_assigner = club_assigner
         self.ball_to_player_assigner = ball_to_player_assigner
+        self.possession_tracker = ball_to_player_assigner.possession_tracker
         self.projection_annotator = ProjectionAnnotator()
         self.obj_mapper = ObjectPositionMapper(top_down_keypoints)
-        self.field_image = cv2.imread(field_img_path)
+        
+        field_image = cv2.imread(field_img_path)
+        # Convert the field image to grayscale (black and white)
+        field_image = cv2.cvtColor(field_image, cv2.COLOR_BGR2GRAY)
+
+        # Convert grayscale back to 3 channels (since the main frame is 3-channel)
+        field_image = cv2.cvtColor(field_image, cv2.COLOR_GRAY2BGR)
+
+        self.field_image = field_image
 
     def __call__(self, frame):
         obj_detections = self.obj_tracker.detect(frame)
@@ -56,7 +65,7 @@ class Annotator(AbstractAnnotator):
         h_proj, w_proj, _ = projection_frame.shape
 
         # Scale the frames (keep original size of the main frame)
-        scale_proj = .6  # Scale the projection to 60% of its original size
+        scale_proj = .7  # Scale the projection to 70% of its original size
         new_w_proj = int(w_proj * scale_proj)
         new_h_proj = int(h_proj * scale_proj)
         projection_resized = cv2.resize(projection_frame, (new_w_proj, new_h_proj))
@@ -76,4 +85,63 @@ class Annotator(AbstractAnnotator):
         overlay = combined_frame[y_offset:y_offset + new_h_proj, x_offset:x_offset + new_w_proj]
         cv2.addWeighted(projection_resized, alpha, overlay, 1 - alpha, 0, overlay)
 
+        # Annotate possession
+        combined_frame = self._annotate_possession(combined_frame)
+
         return combined_frame
+    
+
+    def _annotate_possession(self, frame):
+        overlay = frame.copy()
+
+        # Position and size for the overlay (top-left with 20px margin)
+        overlay_width = 500
+        overlay_height = 80
+        gap_x = 20  # 20px from the left
+        gap_y = 20  # 20px from the top
+
+        # Draw background rectangle (black with transparency)
+        cv2.rectangle(overlay, (gap_x, gap_y), (gap_x + overlay_width, gap_y + overlay_height), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+
+        text_x = gap_x + 10
+        text_y = gap_y + 10 + 15
+        # Write "Possession" above the progress bar
+        cv2.putText(frame, 'Possession:', (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, .7, (255, 255, 255), 1)
+
+        # Position and size for the possession ba (20px margin)
+        bar_x = text_x
+        bar_y = text_y + 25
+        bar_width = overlay_width - bar_x
+        bar_height = 15
+
+        possession = self.possession_tracker.possession[-1]
+
+        # Get possession data from possession_dict
+        possession_club1 = possession[0]
+        possession_club2 = possession[1]
+
+        # Calculate sizes for each possession segment in pixels
+        club1_width = int(bar_width * (possession_club1))
+        club2_width = int(bar_width * (possession_club2))
+        neutral_width = bar_width - club1_width - club2_width
+
+        club1_color = self.club_assigner.club1.player_jersey_color
+        club2_color = self.club_assigner.club2.player_jersey_color
+        neutral_color = (128, 128, 128)
+
+
+        # Draw club 1's possession (on the left)
+        cv2.rectangle(frame, (bar_x, bar_y), (bar_x + club1_width, bar_y + bar_height), club1_color, -1)
+
+        # Draw neutral possession (in the middle, gray)
+        cv2.rectangle(frame, (bar_x + club1_width, bar_y), (bar_x + club1_width + neutral_width, bar_y + bar_height), neutral_color, -1)
+
+        # Draw club 2's possession (on the right)
+        cv2.rectangle(frame, (bar_x + club1_width + neutral_width, bar_y), (bar_x + bar_width, bar_y + bar_height), club2_color, -1)
+
+        # Draw outline for the entire progress bar
+        cv2.rectangle(frame, (bar_x, bar_y), (bar_x + bar_width, bar_y + bar_height), (0, 0, 0), 2)
+       
+
+        return frame

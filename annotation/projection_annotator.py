@@ -12,7 +12,7 @@ class ProjectionAnnotator(AbstractAnnotator):
         luminance = (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2])  # Luminance formula
         return luminance < 128
 
-    def _draw_outline(self, frame, pos, shape='circle', size=15, is_dark=True):
+    def _draw_outline(self, frame, pos, shape='circle', size=10, is_dark=True):
         """
         Draw a white or black outline around the object based on color and shape.
         """
@@ -68,14 +68,14 @@ class ProjectionAnnotator(AbstractAnnotator):
                             # Draw a player/goalkeeper with possession accent (green ring)
                             shape = 'square' if class_name == 'goalkeeper' else 'circle'
                             self._draw_outline(frame, proj_pos, shape=shape, is_dark=is_dark_color)
-                            cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=20, color=(0, 255, 0), thickness=2)  # Green ring for possession
+                            cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=15, color=(0, 255, 0), thickness=2)  # Green ring for possession
 
                             # Draw the player or goalkeeper marker (circle or square)
                             if shape == 'circle':
-                                cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=15, color=color, thickness=-1)
+                                cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=10, color=color, thickness=-1)
                             else:
-                                top_left = (int(proj_pos[0]) - 15, int(proj_pos[1]) - 15)
-                                bottom_right = (int(proj_pos[0]) + 15, int(proj_pos[1]) + 15)
+                                top_left = (int(proj_pos[0]) - 10, int(proj_pos[1]) - 10)
+                                bottom_right = (int(proj_pos[0]) + 10, int(proj_pos[1]) + 10)
                                 cv2.rectangle(frame, top_left, bottom_right, color=color, thickness=-1)
 
                         else:
@@ -83,10 +83,10 @@ class ProjectionAnnotator(AbstractAnnotator):
                             shape = 'square' if class_name == 'goalkeeper' else 'circle'
                             self._draw_outline(frame, proj_pos, shape=shape, is_dark=is_dark_color)
                             if shape == 'circle':
-                                cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=15, color=color, thickness=-1)
+                                cv2.circle(frame, (int(proj_pos[0]), int(proj_pos[1])), radius=10, color=color, thickness=-1)
                             else:
-                                top_left = (int(proj_pos[0]) - 15, int(proj_pos[1]) - 15)
-                                bottom_right = (int(proj_pos[0]) + 15, int(proj_pos[1]) + 15)
+                                top_left = (int(proj_pos[0]) - 10, int(proj_pos[1]) - 10)
+                                bottom_right = (int(proj_pos[0]) + 10, int(proj_pos[1]) + 10)
                                 cv2.rectangle(frame, top_left, bottom_right, color=color, thickness=-1)
 
                     elif class_name == 'referee':
@@ -104,10 +104,10 @@ class ProjectionAnnotator(AbstractAnnotator):
 
                 # Then, draw the ball as a yellow plus sign
                 color = (0, 255, 255)  # Yellow
-                cv2.line(frame, (int(proj_pos[0]) - 15, int(proj_pos[1])), 
-                        (int(proj_pos[0]) + 15, int(proj_pos[1])), color=color, thickness=6)
-                cv2.line(frame, (int(proj_pos[0]), int(proj_pos[1]) - 15), 
-                        (int(proj_pos[0]), int(proj_pos[1]) + 15), color=color, thickness=6)
+                cv2.line(frame, (int(proj_pos[0]) - 10, int(proj_pos[1])), 
+                        (int(proj_pos[0]) + 10, int(proj_pos[1])), color=color, thickness=6)
+                cv2.line(frame, (int(proj_pos[0]), int(proj_pos[1]) - 10), 
+                        (int(proj_pos[0]), int(proj_pos[1]) + 10), color=color, thickness=6)
 
         return frame
 

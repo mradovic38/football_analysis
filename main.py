@@ -29,13 +29,13 @@ def main():
     )
 
     # Assign Clubs
-    club1 = Club('Club1', (255, 255, 255), (0, 0, 0))
-    club2 = Club('Club2', (179, 255, 147), (239, 156, 132))
+    club1 = Club('Club1', (229, 244, 248), (0, 0, 0))
+    club2 = Club('Club2', (172, 251, 145), (239, 156, 132))
 
 
     club_assigner = ClubAssigner(club1, club2)
 
-    ball_player_assigner = BallToPlayerAssigner(club1.name, club2.name)
+    ball_player_assigner = BallToPlayerAssigner(club1, club2)
 
     top_down_keypoints = np.array([
         [0, 0], [0, 57], [0, 122], [0, 229], [0, 293], [0, 351], # 0-5
