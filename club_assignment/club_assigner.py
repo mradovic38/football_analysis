@@ -39,11 +39,11 @@ class ClubAssigner:
         corners = [cluster_img[0, 0], cluster_img[0, -1], cluster_img[-1, 0], cluster_img[-1, -1]]
         bg_cluster = max(set(corners), key=corners.count)
         
-        # The other clusters are player clusters
-        player_clusters = [i for i in range(3) if i != bg_cluster]
+        # The other clusters are potential jersey colors
+        jersey_clusters = [i for i in range(3) if i != bg_cluster]
         
-        # Get the colors of the player clusters
-        jersey_colors = [self.kmeans.cluster_centers_[i] for i in player_clusters]
+        # Get the colors of the potential jersey clusters
+        jersey_colors = [self.kmeans.cluster_centers_[i] for i in jersey_clusters]
         
         # Convert back to RGB
         jersey_colors_rgb = [cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_LAB2RGB)[0][0] for color in jersey_colors]
@@ -56,21 +56,22 @@ class ClubAssigner:
         jersey_colors = self.clustering(img_top)
         return jersey_colors
 
-    def get_player_club(self, frame, bbox, player_id):
+    def get_player_club(self, frame, bbox, player_id, is_goalkeeper=False):
         colors = self.get_jersey_color(frame, bbox)
-        predictions = [self.model.predict(color) for color in colors]
-        team_ids = [pred % 2 for pred in predictions]  # % 2 to assign goalkeepers to players team
+        predictions = [self.model.predict(color, is_goalkeeper) for color in colors]
         
         # Choose the most common team prediction
-        team_id = max(set(team_ids), key=team_ids.count)
+        team_id = max(set(predictions), key=predictions.count)
         
-        return list(self.club_colors.keys())[team_id], predictions[team_ids.index(team_id)]
+        return list(self.club_colors.keys())[team_id], team_id
 
     def assign_clubs(self, frame, tracks):
+        tracks = tracks.copy()
         for track_type in ['goalkeeper', 'player']:
             for player_id, track in tracks[track_type].items():
                 bbox = track['bbox']
-                club, pred = self.get_player_club(frame, bbox, player_id)
+                is_goalkeeper = (track_type == 'goalkeeper')
+                club, pred = self.get_player_club(frame, bbox, player_id, is_goalkeeper)
                 
                 tracks[track_type][player_id]['club'] = club
                 tracks[track_type][player_id]['club_color'] = self.club_colors[club]
@@ -79,11 +80,18 @@ class ClubAssigner:
 
 class ClubAssignerModel:
     def __init__(self, club1: Club, club2: Club):
-        self.centroids = np.array([club1.player_jersey_color, club2.player_jersey_color,
-                                   club1.goalkeeper_jersey_color, club2.goalkeeper_jersey_color])
-        self.centroids_lab = np.array([cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_RGB2LAB)[0][0] for color in self.centroids])
+        self.player_centroids = np.array([
+            club1.player_jersey_color,
+            club2.player_jersey_color
+        ])
+        self.goalkeeper_centroids = np.array([
+            club1.goalkeeper_jersey_color,
+            club2.goalkeeper_jersey_color
+        ])
+        self.player_centroids_lab = np.array([cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_RGB2LAB)[0][0] for color in self.player_centroids])
+        self.goalkeeper_centroids_lab = np.array([cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_RGB2LAB)[0][0] for color in self.goalkeeper_centroids])
 
-    def predict(self, data):
+    def predict(self, data, is_goalkeeper=False):
         # Ensure data is in the correct shape (3,) for RGB values
         if data.shape != (3,):
             raise ValueError(f"Expected color data shape (3,), got {data.shape}")
@@ -94,7 +102,12 @@ class ClubAssignerModel:
         # Convert to LAB color space
         data_lab = cv2.cvtColor(np.uint8(data_reshaped), cv2.COLOR_RGB2LAB)[0][0]
         
+        if is_goalkeeper:
+            centroids = self.goalkeeper_centroids_lab
+        else:
+            centroids = self.player_centroids_lab
+        
         # Calculate distances
-        distances = np.linalg.norm(data_lab - self.centroids_lab, axis=1)
+        distances = np.linalg.norm(data_lab - centroids, axis=1)
         
         return np.argmin(distances)

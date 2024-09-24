@@ -7,12 +7,14 @@ class BallToPlayerAssigner:
         self.possession_tracker = PossessionTracker(club1, club2)
     
     def assign(self, tracks):
+        
+        tracks = tracks.copy()
 
         player_w_ball = -1
 
         if 'ball' not in tracks or not tracks['ball']:
             self.possession_tracker.add_possession(-1)
-            return player_w_ball
+            return tracks, player_w_ball
 
         players = {**tracks['player'], **tracks['goalkeeper']}
         first_key = next(iter(tracks['ball']))  # Get the first key in tracks['ball']
@@ -41,7 +43,7 @@ class BallToPlayerAssigner:
         else:
             self.possession_tracker.add_possession(-1)
 
-        return player_w_ball
+        return tracks, player_w_ball
 
     def get_ball_possessions(self):
         return self.possession_tracker.possession

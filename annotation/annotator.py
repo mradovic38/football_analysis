@@ -3,6 +3,7 @@ from .object_annotator import ObjectAnnotator
 from .keypoints_annotator import KeypointsAnnotator
 from .projection_annotator import ProjectionAnnotator
 from position_mappers import ObjectPositionMapper
+from speed_estimation import SpeedEstimator
 
 import cv2
 import numpy as np
@@ -19,6 +20,8 @@ class Annotator(AbstractAnnotator):
         self.possession_tracker = ball_to_player_assigner.possession_tracker
         self.projection_annotator = ProjectionAnnotator()
         self.obj_mapper = ObjectPositionMapper(top_down_keypoints)
+
+        
         
         field_image = cv2.imread(field_img_path)
         # Convert the field image to grayscale (black and white)
@@ -26,6 +29,10 @@ class Annotator(AbstractAnnotator):
 
         # Convert grayscale back to 3 channels (since the main frame is 3-channel)
         field_image = cv2.cvtColor(field_image, cv2.COLOR_GRAY2BGR)
+
+        self.speed_estimator = SpeedEstimator(field_image.shape[1], field_image.shape[0])
+        
+        self.frame_num = 0
 
         self.field_image = field_image
 
@@ -36,15 +43,20 @@ class Annotator(AbstractAnnotator):
         obj_tracks = self.obj_tracker.track(obj_detections)
         kp_tracks = self.kp_tracker.track(kp_detections)
 
-        self.club_assigner.assign_clubs(frame, obj_tracks)
+        obj_tracks = self.club_assigner.assign_clubs(frame, obj_tracks)
         
-        self.ball_to_player_assigner.assign(obj_tracks)
+        obj_tracks, _ = self.ball_to_player_assigner.assign(obj_tracks)
+
 
         all_tracks = {'object': obj_tracks, 'keypoints': kp_tracks}
 
         all_tracks = self.obj_mapper.map(all_tracks)
 
+        all_tracks['object'] = self.speed_estimator.calculate_speed(all_tracks['object'], self.frame_num)
+
         print(all_tracks)
+
+        self.frame_num += 1
 
         return self.annotate(frame, all_tracks)
 

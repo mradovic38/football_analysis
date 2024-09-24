@@ -48,7 +48,7 @@ def process_video(annotator, input_video_path, output_video_path=None):
     # Get video properties
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = 30
 
     # Prepare the video writer if output is required
     out = None

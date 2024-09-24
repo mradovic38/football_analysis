@@ -15,10 +15,10 @@ class ObjectAnnotator(AbstractAnnotator):
                 color = item.get('club_color', (255, 255, 0))
 
                 if track == 'ball':
-                    frame = self.draw_triangle(frame, item['bbox'], color, track=='goalkeeper')
+                    frame = self.draw_triangle(frame, item['bbox'], color)
                 else:
-                    pos = item.get('position_transformed', (0, 0))
-                    frame = self.draw_ellipse(frame, item['bbox'], color, track_id, pos, track=='goalkeeper')
+                    speed = item.get('speed', 0)
+                    frame = self.draw_ellipse(frame, item['bbox'], color, track_id, speed, track=='goalkeeper')
 
                 if 'has_ball' in item and item['has_ball']:
                     frame = self.draw_triangle(frame, item['bbox'], color)
@@ -27,7 +27,7 @@ class ObjectAnnotator(AbstractAnnotator):
         return frame
     
 
-    def draw_triangle(self, frame, bbox, color, is_keeper=False):
+    def draw_triangle(self, frame, bbox, color):
         y = int(bbox[1])
         x, _ = get_bbox_center(bbox)
         x = int(x)
@@ -53,7 +53,7 @@ class ObjectAnnotator(AbstractAnnotator):
         return frame
     
 
-    def draw_ellipse(self, frame, bbox, color, track_id, position, is_keeper=False):
+    def draw_ellipse(self, frame, bbox, color, track_id, speed, is_keeper=False):
         
         y = int(bbox[3])
         x, _ = get_bbox_center(bbox)
@@ -101,6 +101,18 @@ class ObjectAnnotator(AbstractAnnotator):
         cv2.putText(frame,
                     text=f"{track_id}",
                     org=(x1, y + h//2),
+                    fontFace=cv2.FONT_HERSHEY_PLAIN,
+                    fontScale=1,
+                    color=(255-color[0], 255-color[1], 255-color[2]),
+                    thickness=2
+                    )
+        
+        
+        speed_str = f"{speed: .2f} km/h"
+        x2 = x - len(speed_str) * 5
+        cv2.putText(frame,
+                    text=speed_str,
+                    org=(x2, y + 20),
                     fontFace=cv2.FONT_HERSHEY_PLAIN,
                     fontScale=1,
                     color=(255-color[0], 255-color[1], 255-color[2]),

@@ -18,9 +18,7 @@ def main():
 
 
     obj_tracker = ObjectTracker(
-        model_id = 'smart-football-object-detection-icwha/3',
-        cls_tracks=['goalkeeper', 'player', 'referee'],
-        cls_sv=['ball']
+        model_id = 'smart-football-object-detection-icwha/3'
     )
 
     kp_tracker = KeypointsTracker(

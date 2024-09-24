@@ -5,24 +5,21 @@ from tracking.abstract_tracker import AbstractTracker
 
 class ObjectTracker(AbstractTracker):
 
-    def __init__(self, model_id, cls_tracks, cls_sv, conf=0.1):
+    def __init__(self, model_id, conf=0.1):
         """
-        Initialize ObjectTracker with class-specific tracking and detection.
+        Initialize ObjectTracker with detection and tracking.
 
         Args:
             model_path (str): Path to the YOLO model for object detection.
-            cls_tracks (list): List of classes for tracking.
-            cls_sv (list): List of classes for detection and annotation.
             conf (float): Confidence threshold for detection.
         """
         super().__init__(model_id, conf)  # Call the Tracker base class constructor
         
-        self.cls_tracks = cls_tracks  # Classes to use tracker on
-        self.cls_sv = cls_sv  # Classes to not use tracker on
+        self.classes = ['ball', 'goalkeeper', 'player', 'referee']
 
         self.tracker = sv.ByteTrack()  # Initialize ByteTracker
         self.tracker.reset()
-        self.all_tracks = {class_name: {} for class_name in self.cls_sv + self.cls_tracks}  # Initialize tracks
+        self.all_tracks = {class_name: {} for class_name in self.classes}  # Initialize tracks
         
 
     def detect(self, frame):
@@ -54,7 +51,7 @@ class ObjectTracker(AbstractTracker):
         # Perform ByteTracker object tracking on the detections
         detection_tracks = self.tracker.update_with_detections(detection_sv)
 
-        self.current_frame_tracks = self._detections_mapper(detection_tracks, self.cls_sv + self.cls_tracks)
+        self.current_frame_tracks = self._detections_mapper(detection_tracks, self.classes)
         
         # Store the current frame's tracking information in all_tracks
         self.all_tracks[self.cur_frame] = self.current_frame_tracks.copy()

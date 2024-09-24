@@ -28,7 +28,7 @@ def get_homography(keypoints, top_down_keypoints):
         # Compute the homography matrix using RANSAC
         src_points = np.array(src_points, dtype=np.float32)
         dst_points = np.array(dst_points, dtype=np.float32)
-        h, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC)
+        h, _ = cv2.findHomography(src_points, dst_points)
         
         return h.astype(np.float32)
     
