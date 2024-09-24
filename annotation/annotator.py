@@ -45,7 +45,7 @@ class Annotator(AbstractAnnotator):
 
         obj_tracks = self.club_assigner.assign_clubs(frame, obj_tracks)
         
-        obj_tracks, _ = self.ball_to_player_assigner.assign(obj_tracks)
+        obj_tracks, _ = self.ball_to_player_assigner.assign(obj_tracks, self.frame_num)
 
 
         all_tracks = {'object': obj_tracks, 'keypoints': kp_tracks}
@@ -63,9 +63,9 @@ class Annotator(AbstractAnnotator):
     
     def annotate(self, frame, tracks):
         # Annotate the main frame with object and keypoint annotations
-        frame = self.obj_annotator.annotate(frame, tracks['object'])
         frame = self.kp_annotator.annotate(frame, tracks['keypoints'])
-
+        frame = self.obj_annotator.annotate(frame, tracks['object'])
+        
         # Project the player and object positions on the football field image
         projection_frame = self.projection_annotator.annotate(self.field_image.copy(), tracks['object'])
 
