@@ -39,7 +39,10 @@ class BallToPlayerAssigner:
 
         if player_w_ball!=-1 and 'club' in players[player_w_ball]:
             self.possession_tracker.add_possession(players[player_w_ball]['club'])
-            tracks['player'][player_w_ball]['has_ball'] = True
+            if player_w_ball in tracks['player']:
+                tracks['player'][player_w_ball]['has_ball'] = True
+            else:
+                tracks['goalkeeper'][player_w_ball]['has_ball'] = True
         else:
             self.possession_tracker.add_possession(-1)
 

@@ -2,6 +2,7 @@ from .abstract_annotator import AbstractAnnotator
 
 import cv2
 import numpy as np
+from scipy.spatial import Voronoi
 
 class ProjectionAnnotator(AbstractAnnotator):
 
@@ -53,6 +54,11 @@ class ProjectionAnnotator(AbstractAnnotator):
                     (int(pos[0]), int(pos[1]) + (size)), color=outline_color, thickness=10)
 
     def annotate(self, frame, tracks):
+        frame = frame.copy()
+
+        frame = self._draw_voronoi(frame, tracks)
+        
+
         # Draw all other objects (players, goalkeepers, referees) first
         for class_name, track_data in tracks.items():
             if class_name != 'ball':  # Skip the ball for now, we'll draw it later
@@ -112,5 +118,69 @@ class ProjectionAnnotator(AbstractAnnotator):
         return frame
 
                     
+    def _draw_voronoi(self, image, tracks):
+        # Get the image dimensions
+        height, width = image.shape[:2]
+
+        # Create an overlay to draw the Voronoi diagram
+        overlay = image.copy()
+
+        # Extract player and goalkeeper positions from object tracks
+        points = []
+        player_colors = []
+
+        # Loop through 'player' and 'goalkeeper' classes only
+        for class_name in ['player', 'goalkeeper']:
+            track_data = tracks.get(class_name, {})
+            for track_id, track_info in track_data.items():
+                x, y = track_info['projection'][:2]  # Get the projected positions
+                points.append([x, y])
+                player_colors.append(track_info['club_color'])  # Color based on club/team
+
+        # Add extra points far outside the pitch boundaries to ensure full coverage
+        boundary_margin = 1000  # Push boundary points far outside the image dimensions
+
+        boundary_points = [
+            [-boundary_margin, -boundary_margin],               # Top-left corner (far outside)
+            [width // 2, -boundary_margin],                     # Top-center (far outside)
+            [width + boundary_margin, -boundary_margin],        # Top-right corner (far outside)
+            [-boundary_margin, height // 2],                    # Mid-left (far outside)
+            [width + boundary_margin, height // 2],             # Mid-right (far outside)
+            [-boundary_margin, height + boundary_margin],       # Bottom-left corner (far outside)
+            [width // 2, height + boundary_margin],             # Bottom-center (far outside)
+            [width + boundary_margin, height + boundary_margin] # Bottom-right corner (far outside)
+        ]
+
+        # Add boundary points to the list of Voronoi points
+        points.extend(boundary_points)
+        
+        # Dummy color (gray) for boundary points
+        boundary_color = (128, 128, 128)
+        player_colors.extend([boundary_color] * len(boundary_points))
+
+        # Ensure there are enough points to create Voronoi diagram
+        if len(points) > 2:
+            points = np.array(points)
+            vor = Voronoi(points)
+
+            # Iterate through each Voronoi region and plot it
+            for region_index, region in enumerate(vor.point_region):
+                if not -1 in vor.regions[region] and len(vor.regions[region]) > 0:
+                    polygon = [vor.vertices[i] for i in vor.regions[region]]
+                    polygon = np.array(polygon, np.int32)
+                    polygon = polygon.reshape((-1, 1, 2))
+
+                    # Draw the polygon on the overlay with 60% transparency
+                    color = player_colors[region_index] if region_index < len(player_colors) else boundary_color
+                    cv2.polylines(overlay, [polygon], isClosed=True, color=color, thickness=2)
+                    cv2.fillPoly(overlay, [polygon], color=color)
+
+        # Blend the overlay with the original image using 60% alpha for the Voronoi regions
+        alpha = 0.6
+        cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+
+        return image
+
+
 
     
