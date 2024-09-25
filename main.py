@@ -19,11 +19,11 @@ def main():
     )
 
     # Assign Clubs
-    club1 = Club('Club1', (229, 244, 248), (0, 0, 0))
+    club1 = Club('Club1', (232, 247, 248), (0, 0, 0))
     club2 = Club('Club2', (172, 251, 145), (239, 156, 132))
 
 
-    club_assigner = ClubAssigner(club1, club2)
+    club_assigner = ClubAssigner(club1, club2, images_to_save=25, images_save_path='output_videos')
 
     ball_player_assigner = BallToPlayerAssigner(club1, club2)
 
