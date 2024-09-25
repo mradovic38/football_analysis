@@ -17,7 +17,6 @@ class Annotator(AbstractAnnotator):
         self.kp_annotator = KeypointsAnnotator()
         self.club_assigner = club_assigner
         self.ball_to_player_assigner = ball_to_player_assigner
-        self.possession_tracker = ball_to_player_assigner.possession_tracker
         self.projection_annotator = ProjectionAnnotator()
         self.obj_mapper = ObjectPositionMapper(top_down_keypoints)
 
@@ -44,6 +43,7 @@ class Annotator(AbstractAnnotator):
         kp_tracks = self.kp_tracker.track(kp_detections)
 
         obj_tracks = self.club_assigner.assign_clubs(frame, obj_tracks)
+
         
         obj_tracks, _ = self.ball_to_player_assigner.assign(obj_tracks, self.frame_num)
 
@@ -128,7 +128,7 @@ class Annotator(AbstractAnnotator):
         bar_height = 15
 
         # Get possession data from possession_dict
-        possession = self.possession_tracker.possession[-1]
+        possession = self.ball_to_player_assigner.get_ball_possessions()[-1]
         possession_club1 = possession[0]
         possession_club2 = possession[1]
 

@@ -122,8 +122,7 @@ class ClubAssigner:
         color = self.get_jersey_color(frame, bbox, player_id, is_goalkeeper)
         pred = self.model.predict(color, is_goalkeeper)
         
-        color_dict = self.goalkeeper_colors if is_goalkeeper else self.club_colors
-        return list(color_dict.keys())[pred], pred
+        return list(self.club_colors.keys())[pred], pred
 
 
 

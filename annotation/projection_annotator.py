@@ -1,17 +1,13 @@
 from .abstract_annotator import AbstractAnnotator
+from utils import is_color_dark
 
 import cv2
 import numpy as np
 from scipy.spatial import Voronoi
 
+
 class ProjectionAnnotator(AbstractAnnotator):
 
-    def _is_color_dark(self, color):
-        """
-        Check if the color is dark or light using luminance.
-        """
-        luminance = (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2])  # Luminance formula
-        return luminance < 128
 
     def _draw_outline(self, frame, pos, shape='circle', size=10, is_dark=True):
         """
@@ -66,7 +62,7 @@ class ProjectionAnnotator(AbstractAnnotator):
                     # Get the projected position on the field
                     proj_pos = track_info['projection']  # (x, y) tuple
                     color = track_info.get('club_color', (255, 255, 255))  # Default color if not provided
-                    is_dark_color = self._is_color_dark(color)
+                    is_dark_color = is_color_dark(color)
 
                     if class_name == 'player' or class_name == 'goalkeeper':
                         # Determine if the player or goalkeeper has possession of the ball
@@ -105,7 +101,7 @@ class ProjectionAnnotator(AbstractAnnotator):
                 proj_pos = track_info['projection']  # (x, y) tuple
 
                 # First, draw the outline for the ball 
-                is_dark_color = self._is_color_dark((0, 255, 255))  # Yellow color
+                is_dark_color = is_color_dark((0, 255, 255))  # Yellow color
                 self._draw_outline(frame, proj_pos, shape='plus', is_dark=is_dark_color)
 
                 # Then, draw the ball as a yellow plus sign
