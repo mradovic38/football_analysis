@@ -18,8 +18,7 @@ class ClubAssigner:
             club1.name: club1.goalkeeper_jersey_color,
             club2.name: club2.goalkeeper_jersey_color
         }
-        self.player_kmeans = KMeans(n_clusters=2, init='k-means++', n_init=10, random_state=42)
-        self.goalkeeper_kmeans = KMeans(n_clusters=2, init='k-means++', n_init=10, random_state=42)
+        self.kmeans = KMeans(n_clusters=2, init='k-means++', n_init=10, random_state=42)
 
         # Saving images for analysis
         self.images_to_save =  images_to_save
@@ -68,16 +67,15 @@ class ClubAssigner:
             # Apply normal mask
             return image
 
-    def clustering(self, img, is_goalkeeper=False):
+    def clustering(self, img):
         # Reshape image to 2D array
         img_reshape = img.reshape(-1, 3)
         
         # K-Means clustering
-        kmeans = self.goalkeeper_kmeans if is_goalkeeper else self.player_kmeans
-        kmeans.fit(img_reshape)
+        self.kmeans.fit(img_reshape)
         
         # Get Cluster Labels
-        labels = kmeans.labels_
+        labels = self.kmeans.labels_
         
         # Reshape the labels into the image shape
         cluster_img = labels.reshape(img.shape[0], img.shape[1])
@@ -89,7 +87,7 @@ class ClubAssigner:
         # The other cluster is a player cluster
         player_cluster = 1-bg_cluster
 
-        jersey_color_bgr = kmeans.cluster_centers_[player_cluster]
+        jersey_color_bgr = self.kmeans.cluster_centers_[player_cluster]
         
         return (jersey_color_bgr[2], jersey_color_bgr[1], jersey_color_bgr[0])
 
@@ -114,7 +112,7 @@ class ClubAssigner:
         img = frame[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
         img_top = img[0:img.shape[0]//2, :]  # Use upper half for jersey detection
         masked_img_top = self.apply_mask(img_top, green_threshold=.08)
-        jersey_color = self.clustering(masked_img_top, is_goalkeeper)
+        jersey_color = self.clustering(masked_img_top)
         
         return jersey_color
 
@@ -136,8 +134,7 @@ class ClubAssigner:
                 club, _ = self.get_player_club(frame, bbox, player_id, is_goalkeeper)
                 
                 tracks[track_type][player_id]['club'] = club
-                color_dict = self.goalkeeper_colors if is_goalkeeper else self.club_colors
-                tracks[track_type][player_id]['club_color'] = color_dict[club]
+                tracks[track_type][player_id]['club_color'] = self.club_colors[club]
         
         return tracks
 

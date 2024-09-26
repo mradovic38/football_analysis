@@ -20,7 +20,7 @@ def main():
 
     # Assign Clubs
     club1 = Club('Club1', (232, 247, 248), (6, 25, 21))
-    club2 = Club('Club2', (172, 251, 145), (255, 163, 117))
+    club2 = Club('Club2', (172, 251, 145), (239, 156, 132))
 
 
     club_assigner = ClubAssigner(club1, club2, images_to_save=25, images_save_path='output_videos')

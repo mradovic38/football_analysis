@@ -26,11 +26,11 @@ class ObjectAnnotator(AbstractAnnotator):
                     frame = self.draw_triangle(frame, item['bbox'], self.ball_annotation_color)
 
                 elif track == 'referee':
-                    frame = self.draw_ellipse(frame, item['bbox'], self.referee_annotation_color, track_id, -1, False)
+                    frame = self.draw_ellipse(frame, item['bbox'], self.referee_annotation_color, track_id, -1, track)
 
                 else:
                     speed = item.get('speed', 0)
-                    frame = self.draw_ellipse(frame, item['bbox'], color, track_id, speed, track=='goalkeeper')
+                    frame = self.draw_ellipse(frame, item['bbox'], color, track_id, speed, track)
 
                     if 'has_ball' in item and item['has_ball']:
                         frame = self.draw_triangle(frame, item['bbox'], color)
@@ -66,27 +66,58 @@ class ObjectAnnotator(AbstractAnnotator):
         
         return frame
     
+    def _draw_double_ellipse(self, frame, x, y, w, color):
+        size_decrement = 5
+        
+        # Draw Double Line
+        for i in range(2):
+            cv2.ellipse(frame,
+            center=(x, y), 
+            axes=(w- i * size_decrement, 20- i * size_decrement),
+            angle=0,
+            startAngle=-30,
+            endAngle=240,
+            color=color,
+            thickness=2, 
+            lineType=cv2.LINE_AA
+        )
+            
+    
+    def _draw_dashed_ellipse(self, frame, x, y, w, color):
+        # Parameters for the dashed ellipse
+        dash_length = 15  # Length of each dash
+        total_angle = 270  # Total angle to cover (for this example, from -30 to 240 degrees)
 
-    def draw_ellipse(self, frame, bbox, color, track_id, speed, is_keeper=False):
+        # Loop through the ellipse in steps of dash_length * 2 to alternate dashes and gaps
+        for angle in range(-30, total_angle, dash_length * 2):
+            # Draw the dash segment
+            cv2.ellipse(frame,
+                        center=(x, y),
+                        axes=(w, 20),
+                        angle=0,
+                        startAngle=angle,
+                        endAngle=angle + dash_length,
+                        color=color,
+                        thickness=2,
+                        lineType=cv2.LINE_AA
+            )
+
+       
+
+    def draw_ellipse(self, frame, bbox, color, track_id, speed, obj_cls='player'):
         color2 = (255, 255, 255) if is_color_dark(color) else (0, 0, 0)
         
         y = int(bbox[3])
         x, _ = get_bbox_center(bbox)
         x = int(x)
         w = int(get_bbox_width(bbox))
+        
 
-        if is_keeper:
-            
-            for thickness in range(1, 3):
-                cv2.ellipse(frame,
-                            center=(x, y), 
-                            axes=(w+5*(thickness-1), 20),
-                            angle=0,
-                            startAngle=-30,
-                            endAngle=240,
-                            color=color,
-                            thickness=thickness,
-                            lineType=cv2.LINE_AA)
+        if obj_cls == 'referee':
+            self._draw_dashed_ellipse(frame, x, y, w, color)
+
+        elif obj_cls == 'goalkeeper':
+            self._draw_double_ellipse(frame, x, y, w, color)
         else:
             cv2.ellipse(frame,
                         center=(x, y), 
@@ -99,6 +130,7 @@ class ObjectAnnotator(AbstractAnnotator):
                         lineType=cv2.LINE_AA
             )
 
+            
         y = int(bbox[3]) + 10
 
         h = 10
