@@ -14,5 +14,7 @@ config.py
 analysis/data/keypoints
 old-object_tracker.py
 test.avi
-player_*
-goalkeeper_*
+player_*.*
+goalkeeper_*.*
+test.mp4
+*_tracks.json

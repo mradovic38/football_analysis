@@ -1,16 +1,21 @@
 from .abstract_annotator import AbstractAnnotator
+from .abstract_video_processor import AbstractVideoProcessor
 from .object_annotator import ObjectAnnotator
 from .keypoints_annotator import KeypointsAnnotator
 from .projection_annotator import ProjectionAnnotator
 from position_mappers import ObjectPositionMapper
 from speed_estimation import SpeedEstimator
+from .fps_annotator import FPSAnnotator
 
 import cv2
 import numpy as np
+import os
+import json
 
-class Annotator(AbstractAnnotator):
+class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
 
-    def __init__(self, obj_tracker, kp_tracker, club_assigner, ball_to_player_assigner, top_down_keypoints, field_img_path):
+    def __init__(self, obj_tracker, kp_tracker, club_assigner, ball_to_player_assigner, 
+                 top_down_keypoints, field_img_path, save_tracks_dir=None, draw_fps=True):
         self.obj_tracker = obj_tracker
         self.obj_annotator = ObjectAnnotator()
         self.kp_tracker = kp_tracker
@@ -19,8 +24,23 @@ class Annotator(AbstractAnnotator):
         self.ball_to_player_assigner = ball_to_player_assigner
         self.projection_annotator = ProjectionAnnotator()
         self.obj_mapper = ObjectPositionMapper(top_down_keypoints)
+        self.draw_fps = draw_fps
+        if self.draw_fps:
+            self.fps_annotator = FPSAnnotator()
+        self.cur_fps = 1
 
-        
+        self.save_tracks_dir = save_tracks_dir
+
+        if self.save_tracks_dir:
+            if os.path.exists(self.save_tracks_dir):
+                files_to_remove = [os.path.join(self.save_tracks_dir, 'keypoint_tracks.json'), 
+                                os.path.join(self.save_tracks_dir, 'object_tracks.json')] 
+                self._remove_existing_files(files_to_remove)
+            else:
+                os.makedirs(self.save_tracks_dir)
+
+            
+            
         
         field_image = cv2.imread(field_img_path)
         # Convert the field image to grayscale (black and white)
@@ -35,7 +55,11 @@ class Annotator(AbstractAnnotator):
 
         self.field_image = field_image
 
-    def __call__(self, frame):
+    
+
+    def process(self, frame, fps=1e-6):
+        self.cur_fps = max(fps, 1e-6)
+
         obj_detections = self.obj_tracker.detect(frame)
         kp_detections = self.kp_tracker.detect(frame)
 
@@ -52,9 +76,10 @@ class Annotator(AbstractAnnotator):
 
         all_tracks = self.obj_mapper.map(all_tracks)
 
-        all_tracks['object'] = self.speed_estimator.calculate_speed(all_tracks['object'], self.frame_num)
+        all_tracks['object'] = self.speed_estimator.calculate_speed(all_tracks['object'], self.frame_num, self.cur_fps)
 
-        print(all_tracks)
+        if self.save_tracks_dir:
+            self._save_tracks(all_tracks)
 
         self.frame_num += 1
 
@@ -62,6 +87,10 @@ class Annotator(AbstractAnnotator):
 
     
     def annotate(self, frame, tracks):
+        # Draw fps
+        if self.draw_fps:
+            frame = self.fps_annotator.annotate(frame, {'fps': self.cur_fps})
+        
         # Annotate the main frame with object and keypoint annotations
         frame = self.kp_annotator.annotate(frame, tracks['keypoints'])
         frame = self.obj_annotator.annotate(frame, tracks['object'])
@@ -174,3 +203,78 @@ class Annotator(AbstractAnnotator):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, club2_color, 1)  # Club 2's color
 
         return frame
+    
+
+    def _save_tracks(self, all_tracks):
+        obj_file = os.path.join(self.save_tracks_dir, 'object_tracks.json')
+        kp_file = os.path.join(self.save_tracks_dir, 'keypoint_tracks.json')
+
+        self._save_track_to_file(obj_file, all_tracks['object'])
+        self._save_track_to_file(kp_file, all_tracks['keypoints'])
+
+    def _save_track_to_file(self, filename, tracks):
+        # Convert all tracks to a serializable format
+        serializable_tracks = self._make_serializable(tracks)
+
+        if os.path.exists(filename):
+            # If file exists, load existing data and append new tracks
+            with open(filename, 'r') as f:
+                existing_data = json.load(f)
+            existing_data.append(serializable_tracks)
+            data_to_save = existing_data
+        else:
+            # If file doesn't exist, create a new list with current tracks
+            data_to_save = [serializable_tracks]
+
+        # Write the serializable data to the file
+        with open(filename, 'w') as f:
+            json.dump(data_to_save, f)
+
+    
+    def _make_serializable(self, obj):
+        """
+        Recursively convert objects to a JSON-serializable format.
+        Args:
+            obj: Object to convert.
+        Returns:
+            Serializable object.
+        """
+        if isinstance(obj, dict):
+            # Ensure both keys and values are serializable
+            return {str(k): self._make_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            # Convert lists recursively
+            return [self._make_serializable(v) for v in obj]
+        elif isinstance(obj, tuple):
+            # Convert tuples recursively
+            return tuple(self._make_serializable(v) for v in obj)
+        elif isinstance(obj, np.ndarray):
+            # Convert numpy arrays to lists
+            return obj.tolist()
+        elif isinstance(obj, (np.integer, np.int32, np.int64)):
+            # Convert numpy int to Python int
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float32, np.float64)):
+            # Convert numpy float to Python float
+            return float(obj)
+        elif isinstance(obj, (int, float)):
+            # No conversion needed for Python-native types
+            return obj
+        else:
+            # Return the object as is if it's not a type we need to convert
+            return obj
+        
+
+    def _remove_existing_files(self, files):
+        """
+        Remove files from the filesystem if they exist.
+        Args:
+            files (list): List of file paths to check and remove.
+        """
+        for file_path in files:
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    print(f"Removed file: {file_path}")
+                except Exception as e:
+                    print(f"Error removing {file_path}: {e}")

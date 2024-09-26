@@ -1,1 +1,1 @@
-from .annotator import Annotator
+from .football_video_processor import FootballVideoProcessor

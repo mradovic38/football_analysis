@@ -2,7 +2,7 @@ from utils import process_video
 from tracking import ObjectTracker, KeypointsTracker
 from club_assignment import ClubAssigner, Club
 from ball_to_player_assignment import BallToPlayerAssigner
-from annotation import Annotator
+from annotation import FootballVideoProcessor
 
 import numpy as np
 
@@ -40,9 +40,16 @@ def main():
         [210, 176], [317, 176] # 30-31
     ])
 
-    annotator = Annotator(obj_tracker, kp_tracker, club_assigner, ball_player_assigner, top_down_keypoints,'input_videos/field_2d_v2.png')
+    processor = FootballVideoProcessor(obj_tracker, 
+                                       kp_tracker, 
+                                       club_assigner, 
+                                       ball_player_assigner, 
+                                       top_down_keypoints,
+                                       'input_videos/field_2d_v2.png', 
+                                       save_tracks_dir='output_videos',
+                                       draw_fps=True)
     
-    process_video(annotator, 'input_videos/08fd33_6.mp4', 'output_videos/test.avi')
+    process_video(processor, video_source='input_videos/08fd33_6.mp4', output_video='output_videos/test.mp4')
 
 
 if __name__ == '__main__':

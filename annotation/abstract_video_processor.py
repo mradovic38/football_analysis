@@ -1,18 +1,18 @@
 from abc import ABC, abstractmethod
 
-class AbstractAnnotator(ABC):
+class AbstractVideoProcessor(ABC):
 
     @abstractmethod
-    def annotate(self, frame, tracks):
+    def process(self, frame, fps=1e-6):
         """
-        Abstract method for annotation
+        Abstract method for video processing
         
         Args:
             frame (array): The current frame for detection.
-            tracks (dict): Tracks data
+            fps (float): Current FPS
         
         Returns:
-            Annotated frame
+            Processed frame
         """
         pass
         

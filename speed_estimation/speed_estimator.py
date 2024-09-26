@@ -2,12 +2,11 @@ import math
 from collections import deque
 
 class SpeedEstimator:
-    def __init__(self, field_width=528, field_height=352, real_field_length=100, real_field_width=50, fps=30, smoothing_window=5):
+    def __init__(self, field_width=528, field_height=352, real_field_length=100, real_field_width=50, smoothing_window=5):
         self.field_width = field_width
         self.field_height = field_height
         self.real_field_length = real_field_length  # 100 meters
         self.real_field_width = real_field_width    # 50 meters
-        self.fps = fps
         self.previous_positions = {}
         self.speed_history = {}
         self.smoothing_window = smoothing_window
@@ -19,7 +18,7 @@ class SpeedEstimator:
         # Maximum realistic speed (km/h)
         self.max_speed = 40
 
-    def calculate_speed(self, tracks, frame_number):
+    def calculate_speed(self, tracks, frame_number, fps):
         for track_type in tracks:
             for player_id, track in tracks[track_type].items():
                 if 'projection' in track:
@@ -32,7 +31,7 @@ class SpeedEstimator:
                         distance = self._calculate_distance(prev_position, current_position)
                         
                         # Calculate time difference in seconds
-                        time_diff = (frame_number - prev_frame) / self.fps
+                        time_diff = (frame_number - prev_frame) / fps
                         
                         # Calculate speed in km/h
                         speed = (distance / time_diff) * 3.6 if time_diff > 0 else 0
