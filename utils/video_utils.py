@@ -182,11 +182,9 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
             for thread in threads:
                 thread.start()
 
-            # Wait for threads to finish or for user to press 'q'
-            timeout = 300  # 5 minutes timeout
-            start_time = time.time()
+            # Wait for user to press 'q'
             while any(thread.is_alive() for thread in threads):
-                if stop_event.is_set() or time.time() - start_time > timeout:
+                if stop_event.is_set():
                     print("Stopping threads...")
                     break
                 time.sleep(0.1)
@@ -218,6 +216,7 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
 
     print("Video processing completed. Program will now exit.")
     os._exit(0)  # Force exit the program
+
 
 
 def save_video(out_frames, out_vpath, fps=30.0):

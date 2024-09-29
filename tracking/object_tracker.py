@@ -5,7 +5,7 @@ import cv2
 
 class ObjectTracker(AbstractTracker):
 
-    def __init__(self, model_path, conf=0.5):
+    def __init__(self, model_path, conf=0.3):
         """
         Initialize ObjectTracker with detection and tracking.
 
