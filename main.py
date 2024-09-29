@@ -10,11 +10,11 @@ def main():
 
 
     obj_tracker = ObjectTracker(
-        model_id = 'football-players-detection-3zvbc-7ocfe/2'
+        model_path = 'models/weights/object-detection.pt'
     )
 
     kp_tracker = KeypointsTracker(
-        model_id='football-field-detection-f07vi-apxzb/1',
+        model_path='models/weights/keypoints-detection.pt',
         conf=.3
     )
 
@@ -47,9 +47,9 @@ def main():
                                        top_down_keypoints,
                                        'input_videos/field_2d_v2.png', 
                                        save_tracks_dir='output_videos',
-                                       draw_fps=True)
+                                       draw_frame_num=True)
     
-    process_video(processor, video_source='input_videos/08fd33_6.mp4', output_video='output_videos/test.mp4')
+    process_video(processor, video_source='input_videos/08fd33_6.mp4', output_video='output_videos/test.mp4', batch_size=10, skip_seconds=18)
 
 
 if __name__ == '__main__':

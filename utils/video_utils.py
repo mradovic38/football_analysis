@@ -1,10 +1,11 @@
 import cv2
 import os
 import glob
+import queue
+import threading
 import tempfile
-import shutil
 import time
-import numpy as np
+import signal
 
 def read_video(path):
     """
@@ -43,121 +44,180 @@ def read_video(path):
     
     return frames 
 
-def _convert_frames_to_video(frame_dir, output_video, fps, frame_size, original_frame_count):
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+
+
+def _convert_frames_to_video(frame_dir, output_video, fps, frame_size):
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     out = cv2.VideoWriter(output_video, fourcc, fps, frame_size)
     
     frame_files = sorted(glob.glob(os.path.join(frame_dir, "*.jpg")))
-    processed_frame_count = len(frame_files)
+    frame_count = len(frame_files)
 
-    if processed_frame_count <= 0:
+    if frame_count <= 0:
         out.release()
         print("There are no frames to save")
         return
-
-    
-    if processed_frame_count < original_frame_count:
-        duplication_ratio = original_frame_count / processed_frame_count
-    else:
-        duplication_ratio = 1
     
     for filename in frame_files:
         img = cv2.imread(filename)
-        repeat_count = int(np.ceil(duplication_ratio))
-        for _ in range(repeat_count):
-            out.write(img)
+        out.write(img)
     
     out.release()
     print(f"Video saved as {output_video}")
-    print(f"Original frame count: {original_frame_count}")
-    print(f"Processed frame count: {processed_frame_count}")
-    print(f"Frame duplication ratio: {duplication_ratio:.2f}")
 
-def process_video(processor, video_source=0, output_video="output.mp4"):
+def process_video(processor, video_source=0, output_video="output.mp4", batch_size=30, skip_seconds=0):
     cap = cv2.VideoCapture(video_source)
     
     if not cap.isOpened():
         print("Error: Could not open video source.")
         return
+
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    frames_to_skip = int(skip_seconds * fps)
+
+    # Skip the first 'frames_to_skip' frames
+    for _ in range(frames_to_skip):
+        cap.read()  # Simply read and discard the frames
+
+    frame_queue = queue.Queue(maxsize=100)
+    processed_queue = queue.Queue(maxsize=100)
+    stop_event = threading.Event()
     
-    # Create a temporary directory to store frames
-    with tempfile.TemporaryDirectory() as temp_dir:
-        frame_count = 0
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        
-        # Calculate the time per frame
-        frame_time = 1 / max(fps,1)
+    def signal_handler(signum, frame):
+        print("Interrupt received, initiating shutdown...")
+        stop_event.set()
 
-        # Variables for FPS calculation
-        start_time = time.time()
-        fps_calc_interval = 1  # Calculate FPS every 1 second
-        frames_in_interval = 0
-        current_fps = 1e-6
-
-        
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    def frame_capture_thread():
+        print("Starting frame capture")
+        frame_count = frames_to_skip  # Start counting frames from here
         try:
-            prev_time = time.time()
-            while True:
-                # Capture frame-by-frame
+            while cap.isOpened() and not stop_event.is_set():
                 ret, frame = cap.read()
                 if not ret:
+                    print("No more frames to capture or end of video")
                     break
-                
-                current_time = time.time()
-                elapsed_time =  max(current_time - prev_time, 1e-6)
+                frame_queue.put((frame_count, frame))
+                frame_count += 1
+        except Exception as e:
+            print(f"Error in frame capture: {e}")
+        finally:
+            cap.release()
+            frame_queue.put(None)  # Signal end of capture
+        print("Frame capture complete")
 
-                
-                
-                # If enough time has passed to process this frame
-                if elapsed_time >= frame_time:
-                    # Process the frame
-                    processed_frame = processor.process(frame, current_fps)
-                    
-                    # Save the processed frame as an image
-                    frame_filename = os.path.join(temp_dir, f"frame_{frame_count:06d}.jpg")
-                    cv2.imwrite(frame_filename, processed_frame)
-                    
-                    frame_count += 1
-                    frames_in_interval += 1
-                    
-                    # Display the processed frame (optional)
-                    cv2.imshow('Processed Video', processed_frame)
-                    
-                    # Reset the timer
-                    prev_time = current_time
-                    
-                    # Calculate frames to skip
-                    frames_to_skip = int(elapsed_time / frame_time) - 1
-                    for _ in range(frames_to_skip):
-                        cap.grab()  # Skip frames if processing is slower than frame rate
+    def frame_processing_thread():
+        print("Starting frame processing")
+        frame_batch = []
+        while not stop_event.is_set():
+            try:
+                item = frame_queue.get(timeout=1)
+                if item is None:
+                    print("No more frames to process")
+                    if frame_batch:
+                        process_batch(frame_batch)
+                    break
+                frame_count, frame = item
+                frame_batch.append((frame_count, frame))
 
-                # Calculate and update FPS
-                if current_time - start_time >= fps_calc_interval:
-                    interval = max(current_time - start_time, 1e-6)  # Ensure we don't divide by zero
-                    current_fps = frames_in_interval / interval
-                    print(f"Current FPS: {current_fps}")  # Debug print
-                    frames_in_interval = 0
-                    start_time = current_time
+                if len(frame_batch) == batch_size:
+                    process_batch(frame_batch)
+                    frame_batch = []
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Error in frame processing: {e}")
 
+        processed_queue.put(None)  # Signal end of processing
+        print("Frame processing complete")
+
+    def process_batch(batch):
+        frames = [frame for _, frame in batch]
+        try:
+            processed_batch = processor.process(frames, fps)
+            for (frame_count, _), processed_frame in zip(batch, processed_batch):
+                processed_queue.put((frame_count, processed_frame))
+        except Exception as e:
+            print(f"Error processing batch: {e}")
+
+    def frame_display_thread(temp_dir):
+        print("Starting frame display")
+        while not stop_event.is_set():
+            try:
+                item = processed_queue.get(timeout=1)
+                if item is None:
+                    print("No more frames to display")
+                    break
+                frame_count, processed_frame = item
+
+                frame_filename = os.path.join(temp_dir, f"frame_{frame_count:06d}.jpg")
+                cv2.imwrite(frame_filename, processed_frame)
                 
+                cv2.imshow('Processed Video', processed_frame)
+
                 if cv2.waitKey(1) & 0xFF == ord('q'):
+                    print("'q' pressed, initiating shutdown")
+                    stop_event.set()
                     break
-        
+            except queue.Empty:
+                continue
+            except Exception as e:
+                print(f"Error displaying frame: {e}")
+
+        cv2.destroyAllWindows()
+        print("Frame display complete")
+
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            threads = [
+                threading.Thread(target=frame_capture_thread, name="Capture"),
+                threading.Thread(target=frame_processing_thread, name="Processing"),
+                threading.Thread(target=frame_display_thread, args=(temp_dir,), name="Display")
+            ]
+
+            for thread in threads:
+                thread.start()
+
+            # Wait for threads to finish or for user to press 'q'
+            timeout = 300  # 5 minutes timeout
+            start_time = time.time()
+            while any(thread.is_alive() for thread in threads):
+                if stop_event.is_set() or time.time() - start_time > timeout:
+                    print("Stopping threads...")
+                    break
+                time.sleep(0.1)
+
+            stop_event.set()  # Ensure all threads know to stop
+
+            for thread in threads:
+                thread.join(timeout=10)  # Give each thread 10 seconds to join
+                if thread.is_alive():
+                    print(f"Thread {thread.name} did not terminate gracefully")
+
+            # Ensure all queues are empty
+            while not frame_queue.empty():
+                frame_queue.get()
+            while not processed_queue.empty():
+                processed_queue.get()
+
+            print("All threads have completed. Converting frames to video...")
+            _convert_frames_to_video(temp_dir, output_video, fps, (width, height))
+
         except Exception as e:
             print(f"An error occurred: {e}")
             import traceback
-            traceback.print_exc()  # Print the full traceback for debugging
-        
+            traceback.print_exc()
+
         finally:
             cap.release()
             cv2.destroyAllWindows()
-            
-            # Convert saved frames to video
-            _convert_frames_to_video(temp_dir, output_video, fps, (width, height), total_frames)
 
+    print("Video processing completed. Program will now exit.")
+    os._exit(0)  # Force exit the program
 
 
 def save_video(out_frames, out_vpath, fps=30.0):
@@ -179,7 +239,7 @@ def save_video(out_frames, out_vpath, fps=30.0):
     height, width, _ = out_frames[0].shape
 
     # Define the codec and create a VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     out = cv2.VideoWriter(out_vpath, fourcc, fps, (width, height))
 
     # Write each frame to the video

@@ -1,8 +1,8 @@
-from utils import get_bbox_center, point_distance, get_feet_pos
+from utils import point_distance, get_bbox_center
 from .ball_possession_tracker import PossessionTracker
 
 class BallToPlayerAssigner:
-    def __init__(self, club1, club2, max_ball_distance=50, grace_period=4, ball_grace_period=3, fps=30, max_ball_speed=300, speed_check_frames=5):
+    def __init__(self, club1, club2, max_ball_distance=70, grace_period=4, ball_grace_period=2, fps=30, max_ball_speed=100, speed_check_frames=5, penalty_point_distance=15):
         self.max_ball_distance = max_ball_distance
         self.grace_period_frames = int(grace_period * fps)  # Convert player possession grace period to frames
         self.ball_grace_period_frames = int(ball_grace_period * fps)  # Convert ball detection grace period to frames
@@ -15,6 +15,7 @@ class BallToPlayerAssigner:
         self.ball_exists = False           # Track if the ball is currently in the scene
         self.ball_lost_frame = None        # Track the frame when the ball was last detected
         self.ball_history = []             # Store the ball's position and frame number history
+        self.penalty_point_distance = penalty_point_distance
 
     def is_ball_movement_valid(self, ball_pos, current_frame):
         """
@@ -38,7 +39,7 @@ class BallToPlayerAssigner:
 
         return True
 
-    def assign(self, tracks, current_frame):
+    def assign(self, tracks, current_frame, penalty_point_1_pos, penalty_point_2_pos):
         # Copy the tracks to avoid mutating the original data
         tracks = tracks.copy()
 
@@ -47,77 +48,105 @@ class BallToPlayerAssigner:
 
         # Check if the ball exists in the tracks
         if 'ball' in tracks and tracks['ball']:
-            self.ball_exists = True  # Ball is present
+            self.ball_exists = False  # Assume ball doesn't exist until a valid one is found
             self.ball_lost_frame = current_frame  # Reset the frame when the ball was last seen
-            first_key = next(iter(tracks['ball']))  # Get the first key in tracks['ball']
-            ball_bbox = tracks['ball'][first_key]['bbox']  # Access the 'bbox' of the first ball instance
-            ball_pos = get_bbox_center(ball_bbox)  # Get the center position of the ball
-
-            # Validate the ball's movement before proceeding
-            if not self.is_ball_movement_valid(ball_pos, current_frame):
-                # Invalid movement: disregard this ball detection and proceed as if the ball was not found
-                self.ball_exists = False
-            else:
-                # Update ball history with the current valid ball position and frame number
-                self.ball_history.append((ball_pos, current_frame))
-                # Limit the history size to avoid excessive memory usage
-                if len(self.ball_history) > self.speed_check_frames:
-                    self.ball_history.pop(0)
-
-            min_dis = self.max_ball_distance  # Initialize the minimum distance to the max distance
             
-            # Extract players and goalkeepers from the tracks
-            players = {**tracks.get('player', {}), **tracks.get('goalkeeper', {})}
+            valid_ball_tracks = []  # Store valid ball tracks
 
-            # Loop through players and check their proximity to the ball
-            if self.ball_exists:  # Proceed only if ball movement was valid
-                for player_id, player in players.items():
-                    player_bbox = player['bbox']
-                    player_pos = get_feet_pos(player_bbox)  # Get the player's feet position
-                    dis = point_distance(ball_pos, player_pos)  # Calculate distance between ball and player
+            # Loop through all ball tracks
+            for ball_key, ball_data in tracks['ball'].items():
+                ball_pos = ball_data['projection']  # Access the 'projection' of the ball instance
+                ball_bbox_center = get_bbox_center(ball_data['bbox'])  # Get the center of the bounding box
 
-                    # If player is within max distance, update the player with possession
-                    if dis <= min_dis:
-                        min_dis = dis
-                        player_w_ball = player_id
+                
 
-                # If a player is within the defined distance and possession changes
-                if player_w_ball != -1 and 'club' in players[player_w_ball]:
-                    # Assign ball possession to the closest player
-                    self.possession_tracker.add_possession(players[player_w_ball]['club'])
-                    self.last_player_w_ball = player_w_ball
-                    self.last_possession_frame = current_frame  # Reset the possession frame count
-                    self.last_possessing_team = players[player_w_ball]['club']
+                # Filter out the ball if it's too close to any penalty point
+                is_near_penalty_point = False
+                if penalty_point_1_pos is not None:
+                    if point_distance(ball_bbox_center, penalty_point_1_pos) < self.penalty_point_distance:
+                        is_near_penalty_point = True
+                if penalty_point_2_pos is not None:
+                    if point_distance(ball_bbox_center, penalty_point_2_pos) < self.penalty_point_distance:
+                        is_near_penalty_point = True
 
-                    # Mark possession on the tracks
-                    if player_w_ball in tracks['player']:
-                        tracks['player'][player_w_ball]['has_ball'] = True
-                    elif player_w_ball in tracks['goalkeeper']:
-                        tracks['goalkeeper'][player_w_ball]['has_ball'] = True
-                    else:
-                        self.possession_tracker.add_possession(self.last_possessing_team)
+                # Validate the ball's movement and check its distance from the penalty points
+                if not is_near_penalty_point and self.is_ball_movement_valid(ball_pos, current_frame):
+                    # Add this ball track as valid
+                    valid_ball_tracks.append((ball_key, ball_pos))
                 else:
-                    # Check if the last player is still in possession based on the grace period in frames
-                    if self.last_player_w_ball is not None:
-                        elapsed_frames = current_frame - self.last_possession_frame
-                        if elapsed_frames <= self.grace_period_frames:
-                            # Retain possession for the last player
-                            player_w_ball = self.last_player_w_ball
+                    del tracks['ball'][ball_key]
+
+            # Choose the most suitable ball based on some criteria, like closest to a player
+            if valid_ball_tracks:
+                self.ball_exists = True
+                # If there are multiple valid ball tracks, choose the one with the shortest distance to a player
+                min_dis = self.max_ball_distance
+                best_ball_key, best_ball_pos = None, None
+
+                players = {**tracks.get('player', {}), **tracks.get('goalkeeper', {})}
+
+                # Loop through each valid ball track
+                for ball_key, ball_pos in valid_ball_tracks:
+                    # Loop through players to find the closest one to the ball
+                    for player_id, player in players.items():
+                        player_pos = player['projection']
+                        dis = point_distance(ball_pos, player_pos)  # Calculate distance between ball and player
+
+                        # If player is within max distance, update the best ball
+                        if dis <= min_dis:
+                            min_dis = dis
+                            player_w_ball = player_id
+                            best_ball_key, best_ball_pos = ball_key, ball_pos
+
+                # Update ball history with the current valid ball position and frame number
+                if best_ball_key is not None:
+                    self.ball_history.append((best_ball_pos, current_frame))
+                    # Limit the history size to avoid excessive memory usage
+                    if len(self.ball_history) > self.speed_check_frames:
+                        self.ball_history.pop(0)
+
+                    # If a player is within the defined distance and possession changes
+                    if player_w_ball != -1 and 'club' in players[player_w_ball]:
+                        # Assign ball possession to the closest player
+                        self.possession_tracker.add_possession(players[player_w_ball]['club'])
+                        self.last_player_w_ball = player_w_ball
+                        self.last_possession_frame = current_frame  # Reset the possession frame count
+                        self.last_possessing_team = players[player_w_ball]['club']
+
+                        # Mark possession on the tracks
+                        if player_w_ball in tracks['player']:
+                            tracks['player'][player_w_ball]['has_ball'] = True
+                            self.possession_tracker.add_possession(tracks['player'][player_w_ball]['club'])
+                        elif player_w_ball in tracks['goalkeeper']:
+                            tracks['goalkeeper'][player_w_ball]['has_ball'] = True
+                            self.possession_tracker.add_possession(tracks['goalkeeper'][player_w_ball]['club'])
+                        else:
                             self.possession_tracker.add_possession(self.last_possessing_team)
 
-                            # Mark possession on the tracks for the last player
-                            if player_w_ball in tracks['player']:
-                                tracks['player'][player_w_ball]['has_ball'] = True
-                            elif player_w_ball in tracks['goalkeeper']:
-                                tracks['goalkeeper'][player_w_ball]['has_ball'] = True
-                            else:
-                                self.possession_tracker.add_possession(self.last_possessing_team)
-                        else:
-                            # If grace period is over, remove possession
-                            self.possession_tracker.add_possession(-1)
-                            self.last_player_w_ball = None  # Reset last player possession
                     else:
-                        self.possession_tracker.add_possession(-1)
+                        # Check if the last player is still in possession based on the grace period in frames
+                        if self.last_player_w_ball is not None:
+                            elapsed_frames = current_frame - self.last_possession_frame
+                            if elapsed_frames <= self.grace_period_frames:
+                                # Retain possession for the last player
+                                player_w_ball = self.last_player_w_ball
+                                self.possession_tracker.add_possession(self.last_possessing_team)
+
+                                # Mark possession on the tracks for the last player
+                                if player_w_ball in tracks['player']:
+                                    tracks['player'][player_w_ball]['has_ball'] = True
+                                    self.possession_tracker.add_possession(tracks['player'][player_w_ball]['club'])
+                                elif player_w_ball in tracks['goalkeeper']:
+                                    tracks['goalkeeper'][player_w_ball]['has_ball'] = True
+                                    self.possession_tracker.add_possession(tracks['goalkeeper'][player_w_ball]['club'])
+                                else:
+                                    self.possession_tracker.add_possession(self.last_possessing_team)
+                            else:
+                                # If grace period is over, remove possession
+                                self.possession_tracker.add_possession(-1)
+                                self.last_player_w_ball = None  # Reset last player possession
+                        else:
+                            self.possession_tracker.add_possession(-1)
 
         else:
             # Handle the case when the ball is not present
@@ -132,8 +161,10 @@ class BallToPlayerAssigner:
                     # Mark possession on the tracks for the last player
                     if player_w_ball in tracks['player']:
                         tracks['player'][player_w_ball]['has_ball'] = True
+                        self.possession_tracker.add_possession(tracks['player'][player_w_ball]['club'])
                     elif player_w_ball in tracks['goalkeeper']:
                         tracks['goalkeeper'][player_w_ball]['has_ball'] = True
+                        self.possession_tracker.add_possession(tracks['goalkeeper'][player_w_ball]['club'])
                     else:
                         self.possession_tracker.add_possession(self.last_possessing_team)
                 else:
