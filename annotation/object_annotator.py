@@ -1,5 +1,5 @@
 from .abstract_annotator import AbstractAnnotator
-from utils import get_bbox_width, get_bbox_center, get_feet_pos, is_color_dark
+from utils import get_bbox_width, get_bbox_center, is_color_dark, rgb_bgr_converter
 
 import cv2
 import numpy as np
@@ -42,7 +42,7 @@ class ObjectAnnotator(AbstractAnnotator):
                 # Get the club color, or default to yellow
                 color = item.get('club_color', (255, 255, 0))
                 # Convert RGB to BGR format for OpenCV
-                color = (color[2], color[1], color[0])
+                color = rgb_bgr_converter(color)
 
                 # Annotate based on object type
                 if track == 'ball':

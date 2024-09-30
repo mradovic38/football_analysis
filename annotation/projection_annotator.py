@@ -1,5 +1,5 @@
 from .abstract_annotator import AbstractAnnotator
-from utils import is_color_dark
+from utils import is_color_dark, rgb_bgr_converter
 
 import cv2
 import numpy as np
@@ -65,7 +65,7 @@ class ProjectionAnnotator(AbstractAnnotator):
                 for track_id, track_info in track_data.items():
                     proj_pos = track_info['projection']
                     color = track_info.get('club_color', (255, 255, 255))
-                    color = (color[2], color[1], color[0])
+                    color = rgb_bgr_converter(color)
                     is_dark_color = is_color_dark(color)
 
                     if class_name in ['player', 'goalkeeper']:
@@ -114,8 +114,7 @@ class ProjectionAnnotator(AbstractAnnotator):
             for track_id, track_info in track_data.items():
                 x, y = track_info['projection'][:2]
                 points.append([x, y])
-                c = track_info['club_color']
-                player_colors.append((c[2], c[1], c[0]))
+                player_colors.append(rgb_bgr_converter(track_info['club_color']))
 
         boundary_margin = 1000
         boundary_points = [

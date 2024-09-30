@@ -10,6 +10,7 @@ from file_writing import TracksJsonWriter
 from tracking import ObjectTracker, KeypointsTracker
 from club_assignment import ClubAssigner
 from ball_to_player_assignment import BallToPlayerAssigner
+from utils import rgb_bgr_converter
 
 import cv2
 import numpy as np
@@ -257,8 +258,8 @@ class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
         neutral_color = (128, 128, 128)
 
         # Convert Club Colors from RGB to BGR
-        club1_color = (club1_color[2], club1_color[1], club1_color[0])
-        club2_color = (club2_color[2], club2_color[1], club2_color[0])
+        club1_color = rgb_bgr_converter(club1_color)
+        club2_color = rgb_bgr_converter(club2_color)
 
         # Draw club 1's possession (left)
         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + club1_width, bar_y + bar_height), club1_color, -1)
