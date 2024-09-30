@@ -1,18 +1,20 @@
 from abc import ABC, abstractmethod
+import numpy as np
+from typing import Dict
 
 class AbstractAnnotator(ABC):
 
     @abstractmethod
-    def annotate(self, frame, tracks):
+    def annotate(self, frame: np.ndarray, tracks: Dict) -> np.ndarray:
         """
         Abstract method for annotation
         
         Args:
-            frame (array): The current frame for detection.
+            frame (np.ndarray): The current frame for detection.
             tracks (dict): Tracks data
         
         Returns:
-            Annotated frame
+            np.ndarray: Annotated frame
         """
         pass
         

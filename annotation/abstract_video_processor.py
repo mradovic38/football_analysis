@@ -1,18 +1,20 @@
 from abc import ABC, abstractmethod
+import numpy as np
+from typing import List
 
 class AbstractVideoProcessor(ABC):
 
     @abstractmethod
-    def process(self, frame, fps=1e-6):
+    def process(self, frames: List[np.ndarray], fps: float = 1e-6) -> List[np.ndarray]:
         """
         Abstract method for video processing
         
         Args:
-            frame (array): The current frame for detection.
-            fps (float): Current FPS
+            frames (List[np.ndarray]): Frame batch to process.
+            fps (float): Video FPS.
         
         Returns:
-            Processed frame
+            List[np.ndarray]: Processed frames.
         """
         pass
         

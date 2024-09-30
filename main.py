@@ -49,7 +49,7 @@ def main():
                                        save_tracks_dir='output_videos',
                                        draw_frame_num=True)
     
-    process_video(processor, video_source='input_videos/08fd33_6.mp4', output_video='output_videos/test.mp4', batch_size=10, skip_seconds=18)
+    process_video(processor, video_source='input_videos/08fd33_6.mp4', output_video='output_videos/test.mp4', batch_size=10)
 
 
 if __name__ == '__main__':

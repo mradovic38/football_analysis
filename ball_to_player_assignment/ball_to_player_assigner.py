@@ -2,7 +2,7 @@ from utils import point_distance, get_bbox_center
 from .possession_tracking import PossessionTracker
 
 class BallToPlayerAssigner:
-    def __init__(self, club1, club2, max_ball_distance=70, grace_period=4, ball_grace_period=2, fps=30, max_ball_speed=200, speed_check_frames=5, penalty_point_distance=15):
+    def __init__(self, club1, club2, max_ball_distance=10, grace_period=4, ball_grace_period=2, fps=30, max_ball_speed=100, speed_check_frames=5, penalty_point_distance=15):
         self.max_ball_distance = max_ball_distance
         self.grace_period_frames = int(grace_period * fps)  # Convert player possession grace period to frames
         self.ball_grace_period_frames = int(ball_grace_period * fps)  # Convert ball detection grace period to frames

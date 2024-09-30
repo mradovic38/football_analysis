@@ -3,8 +3,7 @@ from config import ROBOFLOW_API_KEY
 from abc import ABC, abstractmethod
 from ultralytics import YOLO
 import supervision as sv
-
-from inference import get_model
+import torch
 
 
 class AbstractTracker(ABC):
@@ -17,7 +16,9 @@ class AbstractTracker(ABC):
             model_path (str): Path to the model.
             conf (float): Confidence threshold for detections.
         """
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = YOLO(model_path)
+        self.model.to(device)
         self.conf = conf  # Set confidence threshold
         self.cur_frame = 0  # Initialize current frame counter
 
