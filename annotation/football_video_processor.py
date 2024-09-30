@@ -278,7 +278,7 @@ class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
         possession_club2_text = f'{int(possession_club2 * 100)}%'
 
         # Display possession percentages for each club
-        self._display_possession_text(frame, club1_width, neutral_width, club2_width, bar_x, bar_y, possession_club1_text, possession_club2_text, club1_color, club2_color)
+        self._display_possession_text(frame, club1_width, club2_width, neutral_width, bar_x, bar_y, possession_club1_text, possession_club2_text, club1_color, club2_color)
 
         return frame
     
@@ -303,7 +303,7 @@ class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
             club2_color (tuple): BGR color of club 2.
         """
         # Text for club 1
-        club1_text_x = bar_x + club1_width // 2 - 20  # Center of club 1's possession bar
+        club1_text_x = bar_x + club1_width // 2 - 10  # Center of club 1's possession bar
         club1_text_y = bar_y + 35  # 20 pixels below the bar
         cv2.putText(frame, possession_club1_text, (club1_text_x, club1_text_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)  # Black outline
@@ -311,7 +311,7 @@ class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, club1_color, 1)  # Club 1's color
 
         # Text for club 2
-        club2_text_x = bar_x + club1_width + neutral_width + club2_width // 2 - 20  # Center of club 2's possession bar
+        club2_text_x = bar_x + club1_width + neutral_width + club2_width // 2 - 10  # Center of club 2's possession bar
         club2_text_y = bar_y + 35  # 20 pixels below the bar
         cv2.putText(frame, possession_club2_text, (club2_text_x, club2_text_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)  # Black outline
