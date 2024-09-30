@@ -256,6 +256,10 @@ class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
         club2_color = self.club_assigner.club2.player_jersey_color
         neutral_color = (128, 128, 128)
 
+        # Convert Club Colors from RGB to BGR
+        club1_color = (club1_color[2], club1_color[1], club1_color[0])
+        club2_color = (club2_color[2], club2_color[1], club2_color[0])
+
         # Draw club 1's possession (left)
         cv2.rectangle(frame, (bar_x, bar_y), (bar_x + club1_width, bar_y + bar_height), club1_color, -1)
 
@@ -294,8 +298,8 @@ class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
             bar_y (int): Y-coordinate of the progress bar.
             possession_club1_text (str): Text for club 1's possession percentage.
             possession_club2_text (str): Text for club 2's possession percentage.
-            club1_color (tuple): RGB color of club 1.
-            club2_color (tuple): RGB color of club 2.
+            club1_color (tuple): BGR color of club 1.
+            club2_color (tuple): BGR color of club 2.
         """
         # Text for club 1
         club1_text_x = bar_x + club1_width // 2 - 20  # Center of club 1's possession bar

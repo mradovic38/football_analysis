@@ -3,28 +3,54 @@ from .abstract_writer import AbstractWriter
 import os
 import json
 import numpy as np
+from typing import Any, List
+
 
 class TracksJsonWriter(AbstractWriter):
+    """
+    A class to write tracking data to JSON files.
 
-    def __init__(self, save_dir='', object_fname = 'object_tracks', keypoints_fname='keypoint_tracks') -> None:
+    This class handles writing both object tracks and keypoint tracks to separate JSON files.
+    It ensures that existing data can be appended without losing previous entries.
+    """
+
+    def __init__(self, save_dir: str = '', object_fname: str = 'object_tracks', 
+                 keypoints_fname: str = 'keypoint_tracks') -> None:
+        """
+        Initializes the TracksJsonWriter.
+
+        Args:
+            save_dir (str): Directory to save JSON files.
+            object_fname (str): Filename for object tracks (without extension).
+            keypoints_fname (str): Filename for keypoint tracks (without extension).
+        """
         super().__init__()
         self.save_dir = save_dir
-        self.obj_path =  os.path.join(self.save_dir, f'{object_fname}.json')
-        self.kp_path =  os.path.join(self.save_dir, f'{keypoints_fname}.json')
+        self.obj_path = os.path.join(self.save_dir, f'{object_fname}.json')
+        self.kp_path = os.path.join(self.save_dir, f'{keypoints_fname}.json')
 
         if os.path.exists(save_dir):
             self._remove_existing_files(files=[self.kp_path, self.obj_path]) 
         else:
             os.makedirs(save_dir)
     
-    def get_object_tracks_path(self):
+    def get_object_tracks_path(self) -> str:
+        """Returns the path for the object tracks JSON file."""
         return self.obj_path
     
-    def get_keypoints_tracks_path(self):
+    def get_keypoints_tracks_path(self) -> str:
+        """Returns the path for the keypoint tracks JSON file."""
         return self.kp_path
 
-    def write(self, filename, tracks):
-        """Write tracks to a JSON file."""
+    def write(self, filename: str, tracks: Any) -> None:
+        """Write tracks to a JSON file.
+
+        If the file already exists, new tracks are appended.
+
+        Args:
+            filename (str): The name of the file to save tracks.
+            tracks (Any): The tracking data to write to the file.
+        """
         # Convert all tracks to a serializable format
         serializable_tracks = self._make_serializable(tracks)
 
@@ -42,8 +68,15 @@ class TracksJsonWriter(AbstractWriter):
         with open(filename, 'w') as f:
             json.dump(data_to_save, f, indent=4)  # Added indent for better readability
 
-    def _make_serializable(self, obj):
-        """Recursively convert objects to a JSON-serializable format."""
+    def _make_serializable(self, obj: Any) -> Any:
+        """Recursively convert objects to a JSON-serializable format.
+
+        Args:
+            obj (Any): The object to convert.
+
+        Returns:
+            Any: A JSON-serializable representation of the object.
+        """
         if isinstance(obj, dict):
             # Ensure both keys and values are serializable
             return {str(k): self._make_serializable(v) for k, v in obj.items()}
@@ -69,10 +102,10 @@ class TracksJsonWriter(AbstractWriter):
             # Return the object as is if it's not a type we need to convert
             return obj
         
-
-    def _remove_existing_files(self, files):
+    def _remove_existing_files(self, files: List[str]) -> None:
         """
         Remove files from the filesystem if they exist.
+
         Args:
             files (list): List of file paths to check and remove.
         """
@@ -83,6 +116,3 @@ class TracksJsonWriter(AbstractWriter):
                     print(f"Removed file: {file_path}")
                 except Exception as e:
                     print(f"Error removing {file_path}: {e}")
-
-
-    

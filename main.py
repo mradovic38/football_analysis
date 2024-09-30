@@ -19,11 +19,14 @@ def main():
     )
 
     # Assign Clubs
-    club1 = Club('Club1', (232, 247, 248), (6, 25, 21))
-    club2 = Club('Club2', (172, 251, 145), (239, 156, 132))
+    # club1 = Club('Club1', (232, 247, 248), (6, 25, 21))
+    # club2 = Club('Club2', (172, 251, 145), (239, 156, 132))
+
+    club1 = Club('Club1', (251, 235, 255), (209, 201, 70))
+    club2 = Club('Club2', (173, 49, 57), (239, 156, 132))
 
 
-    club_assigner = ClubAssigner(club1, club2, images_to_save=25, images_save_path='output_videos')
+    club_assigner = ClubAssigner(club1, club2, images_save_path='output_videos')
 
     ball_player_assigner = BallToPlayerAssigner(club1, club2)
 
@@ -49,7 +52,7 @@ def main():
                                        save_tracks_dir='output_videos',
                                        draw_frame_num=True)
     
-    process_video(processor, video_source='input_videos/08fd33_6.mp4', output_video='output_videos/test.mp4', batch_size=10)
+    process_video(processor, video_source='input_videos/video2.mp4', output_video='output_videos/test.mp4', batch_size=10)
 
 
 if __name__ == '__main__':

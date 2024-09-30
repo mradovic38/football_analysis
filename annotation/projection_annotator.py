@@ -65,6 +65,7 @@ class ProjectionAnnotator(AbstractAnnotator):
                 for track_id, track_info in track_data.items():
                     proj_pos = track_info['projection']
                     color = track_info.get('club_color', (255, 255, 255))
+                    color = (color[2], color[1], color[0])
                     is_dark_color = is_color_dark(color)
 
                     if class_name in ['player', 'goalkeeper']:
@@ -113,7 +114,8 @@ class ProjectionAnnotator(AbstractAnnotator):
             for track_id, track_info in track_data.items():
                 x, y = track_info['projection'][:2]
                 points.append([x, y])
-                player_colors.append(track_info['club_color'])
+                c = track_info['club_color']
+                player_colors.append((c[2], c[1], c[0]))
 
         boundary_margin = 1000
         boundary_points = [
