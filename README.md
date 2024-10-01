@@ -36,7 +36,7 @@ pip install -r requirements.txt
 ```
 
 #### Train the Models:
-Before running the analysis, you need to train the models. The training notebooks are located in the [models/train](models/train) subfolder. You will find two notebooks: [`object_detection_train.ipynb`](models/train/object_detection/object_detection_train.ipynb) and [`keypoints_detection_train.ipynb`](models/train/keypoints_detection/keypoints_detection_train.ipynb).
+Before running the analysis, you need to train the models. The training notebooks are located in the [models/train](models/train) subfolder. You will find two notebooks: [`object_detection_train.ipynb`](models/train/object_detection/object-detection-train.ipynb) and [`keypoints_detection_train.ipynb`](models/train/keypoints_detection/keypoints-detection-train.ipynb).
 
 Open each notebook and modify the `RESULTS_DIR` parameter to ensure it points to the latest training run (e.g., `trainx`, where x is the index of the latest run).
 
