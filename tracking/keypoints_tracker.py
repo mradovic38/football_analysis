@@ -54,6 +54,10 @@ class KeypointsTracker(AbstractTracker):
             dict: Dictionary containing tracks of the frame.
         """
         detection = sv.KeyPoints.from_ultralytics(detection)
+        
+        # Check 
+        if not detection:
+            return {}
 
         # Extract xy coordinates, confidence, and the number of keypoints
         xy = detection.xy[0]  # Shape: (32, 2), assuming there are 32 keypoints

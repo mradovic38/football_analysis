@@ -35,7 +35,6 @@ class ClubAssigner:
         self.output_dir = images_save_path
 
         if not images_save_path:
-            print("Nema path")
             images_to_save = 0
             self.saved_images = 0
         else:

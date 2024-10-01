@@ -6,44 +6,9 @@ import threading
 import tempfile
 import time
 import signal
-from typing import List, Tuple, Optional, Type
+import traceback
+from typing import List, Tuple, Optional
 import numpy as np
-
-def read_video(path: str) -> List[np.ndarray]:
-    """
-    Load a video file and return its frames.
-
-    Args:
-        path (str): Path to the video file.
-
-    Returns:
-        List[np.ndarray]: List of frames, where each frame is an image array.
-    """
-    # Open the video file
-    cap = cv2.VideoCapture(path)
-    frames = []
-
-    # Check if the video file was successfully opened
-    if not cap.isOpened():
-        print("Error: Unable to open video file.")
-        return frames
-
-    # Read frames until the video ends
-    while cap.isOpened():
-        # Read a frame from the video
-        ret, frame = cap.read()
-
-        # Check if the frame was successfully read
-        if not ret:
-            break
-
-        # Append the frame to the list of frames
-        frames.append(frame)
-
-    # Release the video capture object
-    cap.release()
-    
-    return frames 
 
 
 def _convert_frames_to_video(frame_dir: str, output_video: str, fps: float, frame_size: Tuple[int, int]) -> None:
@@ -75,7 +40,7 @@ def _convert_frames_to_video(frame_dir: str, output_video: str, fps: float, fram
     print(f"Video saved as {output_video}")
 
 
-def process_video(processor = None, video_source: str = "0", output_video: Optional[str] = "output.mp4", 
+def process_video(processor = None, video_source: str = 0, output_video: Optional[str] = "output.mp4", 
                   batch_size: int = 30, skip_seconds: int = 0) -> None:
     """
     Process a video file or stream, capturing, processing, and displaying frames.
@@ -128,7 +93,9 @@ def process_video(processor = None, video_source: str = "0", output_video: Optio
                 if not ret:
                     print("No more frames to capture or end of video")
                     break
-                frame_queue.put((frame_count, frame))
+                resized_frame = cv2.resize(frame, (1920, 1080))
+
+                frame_queue.put((frame_count, resized_frame))
                 frame_count += 1
         except Exception as e:
             print(f"Error in frame capture: {e}")
@@ -178,6 +145,7 @@ def process_video(processor = None, video_source: str = "0", output_video: Optio
                 processed_queue.put((frame_count, processed_frame))
         except Exception as e:
             print(f"Error processing batch: {e}")
+            traceback.print_exc()
 
     def frame_display_thread(temp_dir: str) -> None:
         """Thread to display processed frames."""
@@ -208,8 +176,8 @@ def process_video(processor = None, video_source: str = "0", output_video: Optio
         cv2.destroyAllWindows()
         print("Frame display complete")
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = 1920
+    height = 1080
 
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
@@ -250,7 +218,6 @@ def process_video(processor = None, video_source: str = "0", output_video: Optio
 
         except Exception as e:
             print(f"An error occurred: {e}")
-            import traceback
             traceback.print_exc()
 
         finally:
@@ -259,33 +226,3 @@ def process_video(processor = None, video_source: str = "0", output_video: Optio
 
     print("Video processing completed. Program will now exit.")
     os._exit(0)  # Force exit the program
-
-
-def save_video(out_frames: List[np.ndarray], out_vpath: str, fps: float = 30.0) -> None:
-    """
-    Save frames as a video file.
-
-    Args:
-        out_frames (List[np.ndarray]): List of frames to be saved as video.
-        out_vpath (str): Output video file path.
-        fps (float, optional): Frames per second for the output video (default is 30.0).
-    """
-
-    # Check if any frames to save
-    if len(out_frames) == 0:
-        print("Error: No frames to save.")
-        return
-
-    # Get the shape of the first frame
-    height, width, _ = out_frames[0].shape
-
-    # Define the codec and create a VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    out = cv2.VideoWriter(out_vpath, fourcc, fps, (width, height))
-
-    # Write each frame to the video
-    for frame in out_frames:
-        out.write(frame)
-
-    # Release the VideoWriter object
-    out.release()

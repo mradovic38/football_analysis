@@ -41,6 +41,9 @@ class ObjectPositionMapper(AbstractMapper):
         keypoints = detection['keypoints']
         object_data = detection['object']
 
+        if not keypoints or not object_data:
+            return detection
+
         H = get_homography(keypoints, self.top_down_keypoints)
 
         for _, object_info in object_data.items():
