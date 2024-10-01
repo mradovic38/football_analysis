@@ -7,17 +7,6 @@ A comprehensive tool for processing and analyzing video footage, producing detai
 
 
 ## ⚽ Features
-
-- **Comprehensive Object Detection and Tracking:** Detect and track players, goalkeepers, referees, and footballs.
-- **Field Keypoint Detection:** Identify keypoints on the football field for accurate spatial analysis.
-- **Player Club Assignment:** Automatically assign clubs to players based on jersey colors.
-- **Real-World Position Mapping:** Map real-world object positions to a 2D surface for enhanced analysis.
-- **Dynamic Voronoi Diagram:** Visualize field control through a live Voronoi diagram.
-- **Ball Possession Calculation:** Calculate ball possession and assign balls to players effectively.
-- **Speed Estimation:** Estimate player speeds for performance evaluation.
-- **Live Video Preview:** Monitor processing in real-time with a live video preview.
-- **Tracking Data Storage:** Save tracking information to JSON files for further analysis.
-
 1. [Comprehensive Object Detection and Tracking](#comprehensive-object-detection-and-tracking)
 2. [Field Keypoint Detection](#field-keypoint-detection)
 3. [Player Club Assignment](#player-club-assignment)
@@ -47,7 +36,7 @@ pip install -r requirements.txt
 ```
 
 #### Train the Models:
-Before running the analysis, you need to train the models. The training notebooks are located in the [models/train](models/train) subfolder. You will find two notebooks: [`object-detection.ipynb`](models/train/object-detection.ipynb) and [`keypoints-detection.ipynb`](models/train/keypoints-detection.ipynb).
+Before running the analysis, you need to train the models. The training notebooks are located in the [models/train](models/train) subfolder. You will find two notebooks: [`object_detection_train.ipynb`](models/train/object_detection/object_detection_train.ipynb) and [`keypoints_detection_train.ipynb`](models/train/keypoints_detection/keypoints_detection_train.ipynb).
 
 Open each notebook and modify the `RESULTS_DIR` parameter to ensure it points to the latest training run (e.g., `trainx`, where x is the index of the latest run).
 
@@ -103,7 +92,7 @@ Once the homography matrix is obtained, the positions of detected objects, such 
 The Voronoi diagram represents regions of influence around a set of points, with each region containing all locations closest to one particular point compared to any other. In this context, each point represents a player's position on the field, and the resulting Voronoi regions give a visual indication of each player's area of control.
 
 ### [Ball Possession Calculation](ball_to_player_asignment)
-Calculate ball possession effectively and assign possession to players, providing valuable insights into gameplay strategies.\
+Calculate ball possession effectively and assign possession to players, providing valuable insights into gameplay strategies.
 
 #### Nearest Player:
 Ball possession is tracked by determining which player or team controls the ball at any given time. This is done by calculating the distance between the ball and players, and assigning possession to the nearest player if they are within a reasonable range. Once a player is identified as possessing the ball, their team is given credit for possession.
