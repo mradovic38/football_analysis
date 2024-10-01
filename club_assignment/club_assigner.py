@@ -4,10 +4,10 @@ import os
 from sklearn.cluster import KMeans
 import numpy as np
 import cv2
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 
 class ClubAssigner:
-    def __init__(self, club1: Club, club2: Club, images_to_save: int = 0, images_save_path: str = None) -> None:
+    def __init__(self, club1: Club, club2: Club, images_to_save: int = 0, images_save_path: Optional[str] = None) -> None:
         """
         Initializes the ClubAssigner with club information and image saving parameters.
 
@@ -15,7 +15,7 @@ class ClubAssigner:
             club1 (Club): The first club object.
             club2 (Club): The second club object.
             images_to_save (int): The number of images to save for analysis.
-            images_save_path (str): The directory path to save images.
+            images_save_path (Optional[str]): The directory path to save images.
         """
         self.club1 = club1
         self.club2 = club2
@@ -35,14 +35,16 @@ class ClubAssigner:
         self.output_dir = images_save_path
 
         if not images_save_path:
+            print("Nema path")
             images_to_save = 0
+            self.saved_images = 0
+        else:
+            if not os.path.exists(self.output_dir):
+                os.makedirs(self.output_dir)
+        
+            self.saved_images = len([name for name in os.listdir(self.output_dir) if name.startswith('player')])
 
-        elif not os.path.exists(self.output_dir):
-            os.makedirs(self.output_dir)
-
-        self.saved_images = len([name for name in os.listdir(self.output_dir) if name.startswith('player')])
-
-    def apply_mask(self, image: np.ndarray, green_threshold: float = 0.05) -> np.ndarray:
+    def apply_mask(self, image: np.ndarray, green_threshold: float = 0.08) -> np.ndarray:
         """
         Apply a mask to an image based on green color in HSV space. 
         If the mask covers more than green_threshold of the image, apply the inverse of the mask.
@@ -141,7 +143,7 @@ class ClubAssigner:
             Tuple[int, int, int]: The jersey color in BGR format.
         """
         # Save player images only if needed
-        if self.saved_images <= self.images_to_save:
+        if self.saved_images < self.images_to_save:
             img = frame[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
             img_top = img[0:img.shape[0] // 2, :] 
             self.save_player_image(img_top, player_id, is_goalkeeper)  # Pass is_goalkeeper here

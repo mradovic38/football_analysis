@@ -1,17 +1,16 @@
-from config import ROBOFLOW_API_KEY
-
 from abc import ABC, abstractmethod
 from ultralytics import YOLO
-import supervision as sv
 import torch
-
+from typing import Any, Dict, List
+from ultralytics.engine.results import Results
+import numpy as np
 
 class AbstractTracker(ABC):
 
-    def __init__(self, model_path, conf=0.1):
+    def __init__(self, model_path: str, conf: float = 0.1) -> None:
         """
         Load the model from the given path and set the confidence threshold.
-        
+
         Args:
             model_path (str): Path to the model.
             conf (float): Confidence threshold for detections.
@@ -23,27 +22,27 @@ class AbstractTracker(ABC):
         self.cur_frame = 0  # Initialize current frame counter
 
     @abstractmethod
-    def detect(self, frame):
+    def detect(self, frames: List[np.ndarray]) -> List[Results]:
         """
-        Abstract method for detecting objects or keypoints.
-        
+        Abstract method for YOLO detection.
+
         Args:
-            frame (array): The current frame for detection.
-        
+            frames (List[np.ndarray]): List of frames for detection.
+
         Returns:
-            dict or list: Detections or keypoints.
+            List[Results]: List of YOLO detection result objects.
         """
         pass
         
     @abstractmethod
-    def track(self, frame, detection):
+    def track(self, detection: Results) -> dict:
         """
-        Abstract method for tracking detected objects or keypoints.
-        
+        Abstract method for tracking detections.
+
         Args:
-            detection (dict): The detected objects or keypoints.
-        
+            detection (Results): YOLO detection results for a single frame.
+
         Returns:
-            dict or list: Tracking data.
+            dict: Tracking data.
         """
         pass

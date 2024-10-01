@@ -2,17 +2,21 @@ from tracking.abstract_tracker import AbstractTracker
 
 import cv2
 import supervision as sv
+from typing import List
+from ultralytics.engine.results import Results
+import numpy as np
 
 class KeypointsTracker(AbstractTracker):
+    """Detection and Tracking of football field keypoints"""
 
-    def __init__(self, model_path, conf=0.1, kp_conf=0.7):
+    def __init__(self, model_path: str, conf: float = 0.1, kp_conf: float = 0.7) -> None:
         """
         Initialize KeypointsTracker for tracking keypoints.
         
         Args:
             model_path (str): Model path.
-            conf (float): Confidence threshold for detections.
-            kp_conf (float): Keypoint confidence threshold.
+            conf (float): Confidence threshold for field detection.
+            kp_conf (float): Confidence threshold for keypoints.
         """
         super().__init__(model_path, conf)  # Call the Tracker base class constructor
         self.kp_conf = kp_conf  # Keypoint Confidence Threshold
@@ -22,40 +26,34 @@ class KeypointsTracker(AbstractTracker):
         self.scale_x = self.original_size[0] / 1280
         self.scale_y = self.original_size[1] / 1280
 
-
-
-    def detect(self, frames):
+    def detect(self, frames: List[np.ndarray]) -> List[Results]:
         """
         Perform keypoint detection on multiple frames.
 
         Args:
-            frames (list of arrays): List of frames for detection.
+            frames (List[np.ndarray]): List of frames for detection.
         
         Returns:
-            list: Detected keypoints for each frame.
+            List[Results]: Detected keypoints for each frame
         """
-
         # Adjust contrast before detection for each frame
         contrast_adjusted_frames = [self._preprocess_frame(frame) for frame in frames]
-
 
         # Use YOLOv8's batch predict method
         detections = self.model.predict(contrast_adjusted_frames, conf=self.conf)
         return detections
 
-    def track(self, detection):
+    def track(self, detection: Results) -> dict:
         """
         Perform keypoint tracking based on detections.
         
         Args:
-            detection (list): List of detected keypoints.
+            detection (Results): Detected keypoints for a single frame.
         
         Returns:
-            dict: Tracking data for the last frame.
+            dict: Dictionary containing tracks of the frame.
         """
-
         detection = sv.KeyPoints.from_ultralytics(detection)
-
 
         # Extract xy coordinates, confidence, and the number of keypoints
         xy = detection.xy[0]  # Shape: (32, 2), assuming there are 32 keypoints
@@ -63,7 +61,7 @@ class KeypointsTracker(AbstractTracker):
 
         # Create the map of keypoints with confidence greater than the threshold
         filtered_keypoints = {
-            i: (coords[0] * self.scale_x, coords[1]*self.scale_y)  # i is the key (index), (x, y) are the values
+            i: (coords[0] * self.scale_x, coords[1] * self.scale_y)  # i is the key (index), (x, y) are the values
             for i, (coords, conf) in enumerate(zip(xy, confidence))
             if conf > self.kp_conf
             and 0 <= coords[0] <= 1280  # Check if x is within bounds
@@ -74,18 +72,16 @@ class KeypointsTracker(AbstractTracker):
         self.cur_frame += 1
 
         return filtered_keypoints
-    
 
-
-    def _preprocess_frame(self, frame):
+    def _preprocess_frame(self, frame: np.ndarray) -> np.ndarray:
         """
-        Preprocess the frame by adjusting contrast and resizing to 640x640.
+        Preprocess the frame by adjusting contrast and resizing to 1280x1280.
         
         Args:
-            frame (array): The input image frame.
+            frame (np.ndarray): The input image frame.
         
         Returns:
-            array: The resized frame with adjusted contrast.
+            np.ndarray: The resized frame with adjusted contrast.
         """
         # Adjust contrast
         frame = self._adjust_contrast(frame)
@@ -95,15 +91,15 @@ class KeypointsTracker(AbstractTracker):
 
         return resized_frame
     
-    def _adjust_contrast(self, frame):
+    def _adjust_contrast(self, frame: np.ndarray) -> np.ndarray:
         """
         Adjust the contrast of the frame using Histogram Equalization.
         
         Args:
-            frame (array): The input image frame.
+            frame (np.ndarray): The input image frame.
         
         Returns:
-            array: The frame with adjusted contrast.
+            np.ndarray: The frame with adjusted contrast.
         """
         # Check if the frame is colored (3 channels). If so, convert to grayscale for histogram equalization.
         if len(frame.shape) == 3 and frame.shape[2] == 3:

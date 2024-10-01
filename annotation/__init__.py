@@ -1,1 +1,2 @@
 from .football_video_processor import FootballVideoProcessor
+from .abstract_video_processor import AbstractVideoProcessor

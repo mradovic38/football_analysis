@@ -2,10 +2,13 @@ from tracking.abstract_tracker import AbstractTracker
 
 import supervision as sv
 import cv2
+from typing import List
+import numpy as np
+from ultralytics.engine.results import Results
 
 class ObjectTracker(AbstractTracker):
 
-    def __init__(self, model_path, conf=0.2):
+    def __init__(self, model_path: str, conf: float = 0.1) -> None:
         """
         Initialize ObjectTracker with detection and tracking.
 
@@ -24,16 +27,16 @@ class ObjectTracker(AbstractTracker):
         self.scale_x = self.original_size[0] / 1280
         self.scale_y = self.original_size[1] / 1280
 
-    def detect(self, frames):
-        '''
+    def detect(self, frames: List[np.ndarray]) -> List[Results]:
+        """
         Perform object detection on multiple frames.
 
         Args:
-            frames (list of arrays): List of frames to process.
+            frames (List[np.ndarray]): List of frames to perform object detection on.
 
         Returns:
-            list: Detection results for each frame.
-        '''
+            List[Results]: Detection results for each frame.
+        """
         # Preprocess: Resize frames to 1280x1280
         resized_frames = [self._preprocess_frame(frame) for frame in frames]
 
@@ -42,16 +45,16 @@ class ObjectTracker(AbstractTracker):
 
         return detections  # Batch of detections
 
-    def track(self, detection):
-        '''
+    def track(self, detection: Results) -> dict:
+        """
         Perform object tracking on detection.
 
         Args:
-            detection (array): Current frame detection
+            detection (Results): Detected objects for a single frame.
 
         Returns:
-            dict: Dictionary containing tracks for the last frame.
-        '''
+            dict: Dictionary containing tracks of the frame.
+        """
         # Convert Ultralytics detections to supervision
         detection_sv = sv.Detections.from_ultralytics(detection)
 
@@ -69,31 +72,31 @@ class ObjectTracker(AbstractTracker):
         # Return only the last frame's data
         return self.current_frame_tracks
     
-    def _preprocess_frame(self, frame):
+    def _preprocess_frame(self, frame: np.ndarray) -> np.ndarray:
         """
         Preprocess the frame by resizing it to 1280x1280.
 
         Args:
-            frame (array): The input image frame.
+            frame (np.ndarray): The input image frame.
 
         Returns:
-            array: The resized frame.
+            np.ndarray: The resized frame.
         """
         # Resize the frame to 1280x1280
         resized_frame = cv2.resize(frame, (1280, 1280))
         return resized_frame
     
-    def _tracks_mapper(self, tracks, class_names):
-        '''
+    def _tracks_mapper(self, tracks: sv.Detections, class_names: List[str]) -> dict:
+        """
         Maps tracks to a dictionary by class and tracker ID. Also, adjusts bounding boxes to 1920x1080 resolution.
 
         Args:
-            tracks (array): Tracks from the frame.
-            class_names (list): List of class names.
+            tracks (sv.Detections): Tracks from the frame.
+            class_names (List[str]): List of class names.
 
         Returns:
             dict: Mapped detections for the frame.
-        '''
+        """
         # Initialize the dictionary
         result = {class_name: {} for class_name in class_names}
 
@@ -103,27 +106,10 @@ class ObjectTracker(AbstractTracker):
         tracker_ids = tracks.tracker_id  # Tracker IDs
         confs = tracks.confidence
 
-        # Variable to keep track of the highest confidence ball
-        # highest_confidence_ball = None
-        # max_confidence = 0
-
         # Iterate over all tracks
         for bbox, class_id, track_id, conf in zip(xyxy, class_ids, tracker_ids, confs):
             class_name = class_names[class_id]
 
-            # Check if the current class is a ball
-            # if class_name == "ball":
-            #     # Update the highest confidence ball if the current one is higher
-            #     if conf > max_confidence:
-            #         max_confidence = conf
-            #         # Save the bounding box and tracker id for the highest confidence ball
-            #         highest_confidence_ball = {
-            #             'bbox': bbox,
-            #             'track_id': track_id,
-            #             'confidence': conf
-            #         }
-
-            # else:
             # Create class_name entry if not already present
             if class_name not in result:
                 result[class_name] = {}
@@ -139,17 +125,5 @@ class ObjectTracker(AbstractTracker):
             # Add track_id entry if not already present
             if track_id not in result[class_name]:
                 result[class_name][track_id] = {'bbox': scaled_bbox}
-
-        # # If a ball was detected with the highest confidence, add it to the result
-        # if highest_confidence_ball is not None:
-        #     # Scale the bounding box back to the original resolution (1920x1080)
-        #     scaled_bbox = [
-        #         highest_confidence_ball['bbox'][0] * self.scale_x,
-        #         highest_confidence_ball['bbox'][1] * self.scale_y,
-        #         highest_confidence_ball['bbox'][2] * self.scale_x,
-        #         highest_confidence_ball['bbox'][3] * self.scale_y
-        #     ]
-
-        #     result["ball"] = {highest_confidence_ball['track_id']: {'bbox': scaled_bbox}}
 
         return result

@@ -6,8 +6,10 @@ import threading
 import tempfile
 import time
 import signal
+from typing import List, Tuple, Optional, Type
+import numpy as np
 
-def read_video(path):
+def read_video(path: str) -> List[np.ndarray]:
     """
     Load a video file and return its frames.
 
@@ -15,9 +17,8 @@ def read_video(path):
         path (str): Path to the video file.
 
     Returns:
-        list: List of frames.
+        List[np.ndarray]: List of frames, where each frame is an image array.
     """
-
     # Open the video file
     cap = cv2.VideoCapture(path)
     frames = []
@@ -25,7 +26,7 @@ def read_video(path):
     # Check if the video file was successfully opened
     if not cap.isOpened():
         print("Error: Unable to open video file.")
-        return []
+        return frames
 
     # Read frames until the video ends
     while cap.isOpened():
@@ -45,8 +46,16 @@ def read_video(path):
     return frames 
 
 
+def _convert_frames_to_video(frame_dir: str, output_video: str, fps: float, frame_size: Tuple[int, int]) -> None:
+    """
+    Convert frames in a directory to a video file.
 
-def _convert_frames_to_video(frame_dir, output_video, fps, frame_size):
+    Args:
+        frame_dir (str): Directory containing frame images.
+        output_video (str): Path to save the output video.
+        fps (float): Frames per second for the output video.
+        frame_size (Tuple[int, int]): Size of the frames as (width, height).
+    """
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
     out = cv2.VideoWriter(output_video, fourcc, fps, frame_size)
     
@@ -65,7 +74,24 @@ def _convert_frames_to_video(frame_dir, output_video, fps, frame_size):
     out.release()
     print(f"Video saved as {output_video}")
 
-def process_video(processor, video_source=0, output_video="output.mp4", batch_size=30, skip_seconds=0):
+
+def process_video(processor = None, video_source: str = "0", output_video: Optional[str] = "output.mp4", 
+                  batch_size: int = 30, skip_seconds: int = 0) -> None:
+    """
+    Process a video file or stream, capturing, processing, and displaying frames.
+
+    Args:
+        processor (AbstractVideoProcessor): Object responsible for processing frames.
+        video_source (str, optional): Video source (default is "0" for webcam).
+        output_video (Optional[str], optional): Path to save the output video or None to skip saving.
+        batch_size (int, optional): Number of frames to process at once.
+        skip_seconds (int, optional): Seconds to skip at the beginning of the video.
+    """
+    from annotation import AbstractVideoProcessor  # Lazy import
+
+    if processor is not None and not isinstance(processor, AbstractVideoProcessor):
+        raise ValueError("The processor must be an instance of AbstractVideoProcessor.")
+    
     cap = cv2.VideoCapture(video_source)
     
     if not cap.isOpened():
@@ -84,12 +110,16 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
     stop_event = threading.Event()
     
     def signal_handler(signum, frame):
+        """Signal handler to initiate shutdown on interrupt."""
+
         print("Interrupt received, initiating shutdown...")
         stop_event.set()
 
     signal.signal(signal.SIGINT, signal_handler)
     
-    def frame_capture_thread():
+    def frame_capture_thread() -> None:
+        """Thread to capture frames from the video source."""
+
         print("Starting frame capture")
         frame_count = frames_to_skip  # Start counting frames from here
         try:
@@ -107,7 +137,9 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
             frame_queue.put(None)  # Signal end of capture
         print("Frame capture complete")
 
-    def frame_processing_thread():
+    def frame_processing_thread() -> None:
+        """Thread to process frames from the frame queue."""
+        
         print("Starting frame processing")
         frame_batch = []
         while not stop_event.is_set():
@@ -132,7 +164,13 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
         processed_queue.put(None)  # Signal end of processing
         print("Frame processing complete")
 
-    def process_batch(batch):
+    def process_batch(batch: List[Tuple[int, np.ndarray]]) -> None:
+        """
+        Process a batch of frames and put results in the processed queue.
+
+        Args:
+            batch (List[Tuple[int, np.ndarray]]): List of tuples containing frame count and frame data.
+        """
         frames = [frame for _, frame in batch]
         try:
             processed_batch = processor.process(frames, fps)
@@ -141,7 +179,9 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
         except Exception as e:
             print(f"Error processing batch: {e}")
 
-    def frame_display_thread(temp_dir):
+    def frame_display_thread(temp_dir: str) -> None:
+        """Thread to display processed frames."""
+
         print("Starting frame display")
         while not stop_event.is_set():
             try:
@@ -202,8 +242,11 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
             while not processed_queue.empty():
                 processed_queue.get()
 
-            print("All threads have completed. Converting frames to video...")
-            _convert_frames_to_video(temp_dir, output_video, fps, (width, height))
+            print("All threads have completed.")
+            # Only convert to video if output_video is not None
+            if output_video is not None:
+                print("Converting frames to video...")
+                _convert_frames_to_video(temp_dir, output_video, fps, (width, height))
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -218,17 +261,16 @@ def process_video(processor, video_source=0, output_video="output.mp4", batch_si
     os._exit(0)  # Force exit the program
 
 
+def save_video(out_frames: List[np.ndarray], out_vpath: str, fps: float = 30.0) -> None:
+    """
+    Save frames as a video file.
 
-def save_video(out_frames, out_vpath, fps=30.0):
-    '''
-    Save frames as a video.
-    
     Args:
-        out_frames (list): List of frames to be saved as video.
+        out_frames (List[np.ndarray]): List of frames to be saved as video.
         out_vpath (str): Output video file path.
-        fps (float): Frames per second for the output video (default is 30.0).
-    '''
-    
+        fps (float, optional): Frames per second for the output video (default is 30.0).
+    """
+
     # Check if any frames to save
     if len(out_frames) == 0:
         print("Error: No frames to save.")
