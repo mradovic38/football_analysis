@@ -61,6 +61,9 @@ python main.py
 
 ### [Comprehensive Object Detection and Tracking](tracking/object_tracker.py)
 Detect and track players, goalkeepers, referees, and footballs using advanced computer vision techniques.
+
+![image](https://github.com/user-attachments/assets/3d85e410-65af-4fb6-8c44-fdca717daf13)
+
 #### Detection: 
 The system processes multiple frames from a video feed, resizing them to 1280x1280 pixels for optimal performance. The **YOLO11m detection** model performs batch inference, identifying objects such as players, goalkeepers, referees, and the ball, returning bounding boxes and associated confidence scores.
 #### Tracking:
@@ -68,11 +71,16 @@ Using the **Byte Tracker**, detected objects are tracked across frames. The trac
 
 
 ### [Field Keypoint Detection](tracking/keypoints_tracker.py)
-Identify keypoints on the football field to facilitate accurate spatial analysis and improve the quality of data collected.\
+Identify keypoints on the football field to facilitate accurate spatial analysis and improve the quality of data collected.
+
+![image](https://github.com/user-attachments/assets/f14b0ac1-53e5-4a61-9880-0251e95135bd)
+
 The KeypointsTracker utilizes the **YOLO11n pose** model to detect keypoints in video frames. Each frame undergoes contrast adjustment using histogram equalization to improve the visibility of keypoints, which enhances the model's detection capabilities. After preprocessing, frames are resized to 1280x1280 pixels to ensure compatibility with the model.
 
 ### [Player Club Assignment](club_assignment/club_assigner.py)
 Automatically assign clubs to players based on jersey colors, streamlining the analysis process.
+
+![372900133-d7c4e411-203c-4a56-8870-85bb072bee58](https://github.com/user-attachments/assets/051e004d-4a0c-405c-98a4-a609fa7570d6)
 
 #### Color Masking: 
 Applies a mask to images based on green color detection in the HSV color space. This masking helps to isolate players from the background by filtering out green areas (such as the field) and focusing on player jerseys. If the green coverage exceeds a specified threshold, the image is masked accordingly to improve jersey color detection.
@@ -91,8 +99,12 @@ Once the homography matrix is obtained, the positions of detected objects, such 
 ### [Dynamic Voronoi Diagram](annotation/projection_annotator.py)
 The Voronoi diagram represents regions of influence around a set of points, with each region containing all locations closest to one particular point compared to any other. In this context, each point represents a player's position on the field, and the resulting Voronoi regions give a visual indication of each player's area of control.
 
+![image](https://github.com/user-attachments/assets/e10a0e76-4517-4656-8296-85a883bac940)
+
 ### [Ball Possession Calculation](ball_to_player_asignment)
 Calculate ball possession effectively and assign possession to players, providing valuable insights into gameplay strategies.
+
+![image](https://github.com/user-attachments/assets/43cb45ad-4f3c-4571-ac76-1d96304d0b88)
 
 #### Nearest Player:
 Ball possession is tracked by determining which player or team controls the ball at any given time. This is done by calculating the distance between the ball and players, and assigning possession to the nearest player if they are within a reasonable range. Once a player is identified as possessing the ball, their team is given credit for possession.
@@ -107,15 +119,16 @@ The tracking system also includes a grace period, allowing a player or team to r
 Over time, these possession instances are accumulated to calculate the overall possession percentages for each team. These percentages give an indication of how much time each team has controlled the ball during the game.
 
 ### [Speed Estimation](speed_estimation/speed_estimator.py)
-Estimate player speeds to evaluate performance metrics.
+The speed estimation process in this context aims to calculate how fast players are moving on the football field using video footage.
 
-The speed estimation process in this context aims to calculate how fast players are moving on the football field using video footage. Here's an overview of the steps involved:
+![image](https://github.com/user-attachments/assets/b62e2fa1-a0d2-4164-9c8a-a25c176afdc4)
 
 #### Real-World Scaling:
 The football field in the video is measured in pixels, but real-world distances are needed to estimate speed. By knowing the actual dimensions of the field (in meters) and the dimensions in pixels, a scaling factor is created for both the x-axis and y-axis. This allows conversion from pixel distances to real-world meters.
 
 #### Speed Calculation:
-The Euclidean distance between the player’s current position and their previous position is calculated. This gives the distance the player has moved between frames, in meters.\
+The Euclidean distance between the player’s current position and their previous position is calculated. This gives the distance the player has moved between frames, in meters.
+
 The time difference between the two frames is computed based on the frame rate (frames per second, or FPS) of the video. This provides the duration over which the player moved the calculated distance.\
 Speed is computed by dividing the distance traveled by the time difference. The result is in meters per second, which is then converted to kilometers per hour (km/h) by multiplying by 3.6.
 A maximum speed limit is applied (e.g. 40 km/h) to ensure that the calculated speeds remain realistic.
