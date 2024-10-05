@@ -8,7 +8,7 @@ from ultralytics.engine.results import Results
 
 class ObjectTracker(AbstractTracker):
 
-    def __init__(self, model_path: str, conf: float = 0.1) -> None:
+    def __init__(self, model_path: str, conf: float = 0.5, ball_conf: float = 0.3) -> None:
         """
         Initialize ObjectTracker with detection and tracking.
 
@@ -17,7 +17,8 @@ class ObjectTracker(AbstractTracker):
             conf (float): Confidence threshold for detection.
         """
         super().__init__(model_path, conf)  # Call the Tracker base class constructor
-        
+
+        self.ball_conf = ball_conf
         self.classes = ['ball', 'goalkeeper', 'player', 'referee']
         self.tracker = sv.ByteTrack(lost_track_buffer=5)  # Initialize ByteTracker
         self.tracker.reset()
@@ -109,6 +110,10 @@ class ObjectTracker(AbstractTracker):
         # Iterate over all tracks
         for bbox, class_id, track_id, conf in zip(xyxy, class_ids, tracker_ids, confs):
             class_name = class_names[class_id]
+
+            # Skip balls with confidence lower than ball_conf
+            if class_name == "ball" and conf < self.ball_conf:
+                continue  # Skip low-confidence ball detections
 
             # Create class_name entry if not already present
             if class_name not in result:

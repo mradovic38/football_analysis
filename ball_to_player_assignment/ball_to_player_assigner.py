@@ -14,7 +14,7 @@ class BallToPlayerAssigner:
                  grace_period: float = 4.0, 
                  ball_grace_period: float = 2.0, 
                  fps: int = 30, 
-                 max_ball_speed: float = 100.0, 
+                 max_ball_speed: float = 250.0, 
                  speed_check_frames: int = 5, 
                  penalty_point_distance: float = 15.0) -> None:
         """
@@ -25,7 +25,7 @@ class BallToPlayerAssigner:
             club2 (Club): The Club object of the second club.
             max_ball_distance (float): The maximum distance to consider a player as being able to possess the ball.
             grace_period (float): The time in seconds a player retains possession after losing the ball.
-            ball_grace_period (float): The time in seconds to allow a player to retain possession after the ball is lost.
+            ball_grace_period (float): The time in seconds to allow a player to retain possession after the ball detection is lost.
             fps (int): Frames per second for the video feed.
             max_ball_speed (float): The maximum allowed ball movement in pixels between frames.
             speed_check_frames (int): The number of frames to check for ball movement.
@@ -87,6 +87,7 @@ class BallToPlayerAssigner:
         player_w_ball = -1
         valid_ball_tracks = []  
         best_ball_key = None
+        to_delete = []
 
         if 'ball' in tracks and tracks['ball']:
             self.ball_exists = False
@@ -106,6 +107,8 @@ class BallToPlayerAssigner:
 
                 if not is_near_penalty_point and self.is_ball_movement_valid(ball_pos, current_frame):
                     valid_ball_tracks.append((ball_key, ball_pos))
+                else:
+                    to_delete.append(ball_key)
 
         if valid_ball_tracks:
             self.ball_exists = True
@@ -186,11 +189,17 @@ class BallToPlayerAssigner:
             else:
                 self.possession_tracker.add_possession(-1)
         
+        
+        for bid in to_delete:
+            del tracks['ball'][bid]
+
         ball_tracks_cpy = tracks['ball'].copy()
 
-        for bid in ball_tracks_cpy.keys():
-            if best_ball_key is None or bid != best_ball_key:
-                del tracks['ball'][bid]
+        if best_ball_key:
+            for bid in ball_tracks_cpy.keys():
+                if bid != best_ball_key:
+                    del tracks['ball'][bid]
+
 
         return tracks, player_w_ball
 

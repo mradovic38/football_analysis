@@ -217,6 +217,7 @@ class FootballVideoProcessor(AbstractAnnotator, AbstractVideoProcessor):
         Returns:
             np.ndarray: The annotated frame with possession information.
         """
+        frame = frame.copy()
         overlay = frame.copy()
 
         # Position and size for the possession overlay (top-left with 20px margin)

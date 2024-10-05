@@ -1,2 +1,2 @@
-from .homography import get_homography, apply_homography
+from .homography import get_homography, apply_homography, HomographySmoother
 from .object_position_mapper import ObjectPositionMapper

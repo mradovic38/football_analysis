@@ -1,3 +1,4 @@
+*.mp4
 .ipynb_checkpoints
 runs
 football-players-detection-2
@@ -12,6 +13,4 @@ stubs
 config.py
 analysis/data/keypoints
 old-object_tracker.py
-video2.mp4
-video.mp4
 *_tracks.json

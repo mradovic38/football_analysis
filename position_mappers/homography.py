@@ -2,6 +2,36 @@ import cv2
 import numpy as np
 from typing import Tuple, List
 
+class HomographySmoother:
+    def __init__(self, alpha: float = 0.9):
+        """
+        Initializes the homography smoother.
+
+        Args:
+            alpha (float): Smoothing factor, between 0 and 1. Higher values give more weight to the current homography.
+        """
+        self.alpha = alpha  # Smoothing factor
+        self.smoothed_H = None  # Store the smoothed homography matrix
+
+    def smooth(self, current_H: np.ndarray) -> np.ndarray:
+        """
+        Smooths the homography matrix using exponential smoothing.
+
+        Args:
+            current_H (np.ndarray): The current homography matrix of shape (3, 3).
+
+        Returns:
+            np.ndarray: The smoothed homography matrix of shape (3, 3).
+        """
+        if self.smoothed_H is None:
+            # Initialize with the first homography matrix
+            self.smoothed_H = current_H
+        else:
+            # Apply exponential smoothing
+            self.smoothed_H = self.alpha * current_H + (1 - self.alpha) * self.smoothed_H
+
+        return self.smoothed_H
+
 def get_homography(keypoints: dict, top_down_keypoints: np.ndarray) -> np.ndarray:
     """
     Compute the homography matrix between detected keypoints and top-down keypoints.
@@ -32,7 +62,6 @@ def get_homography(keypoints: dict, top_down_keypoints: np.ndarray) -> np.ndarra
         Returns:
             np.ndarray: The computed homography matrix of shape (3, 3).
         """
-        # Compute the homography matrix using RANSAC
         src_points = np.array(src_points, dtype=np.float32)
         dst_points = np.array(dst_points, dtype=np.float32)
         h, _ = cv2.findHomography(src_points, dst_points)
