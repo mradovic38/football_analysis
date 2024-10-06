@@ -36,11 +36,12 @@ pip install -r requirements.txt
 ```
 
 ### Add Roboflow API Key:
-1. Create a file in the root directory directory named: `config.py`.
-2. Add the folowing. Replace the placeholder value with your actual Roboflow API key: 
+1. Create a file in the root directory named: `config.py`.
+2. Add the folowing in `config.py`: 
 ```python
 ROBOFLOW_API_KEY = 'your_roboflow_api_key_here'
 ```
+Replace the placeholder value with your actual Roboflow API key.
 
 ### Train the Models:
 Before running the analysis, you need to train the models. The training notebooks are located in the [models/train](models/train) subfolder. You will find two notebooks: [`object_detection_train.ipynb`](models/train/object_detection/object_detection_train.ipynb) and [`keypoints_detection_train.ipynb`](models/train/keypoints_detection/keypoints_detection_train.ipynb).
