@@ -21,7 +21,7 @@ A comprehensive tool for processing and analyzing video footage, producing detai
 ## ❓ How to Run
 
 
-#### Clone the Repository:
+### Clone the Repository:
 Clone the project repository to your local machine:
 ```bash
 git clone https://github.com/mradovic38/football_analysis.git
@@ -35,8 +35,15 @@ cd football_analysis
 pip install -r requirements.txt
 ```
 
-#### Train the Models:
-Before running the analysis, you need to train the models. The training notebooks are located in the [models/train](models/train) subfolder. You will find two notebooks: [`object_detection_train.ipynb`](models/train/object_detection/object-detection-train.ipynb) and [`keypoints_detection_train.ipynb`](models/train/keypoints_detection/keypoints-detection-train.ipynb).
+### Add Roboflow API Key:
+1. Create a file in the root directory directory named: `config.py`.
+2. Add the folowing. Replace the placeholder value with your actual Roboflow API key: 
+```python
+ROBOFLOW_API_KEY = 'your_roboflow_api_key_here'
+```
+
+### Train the Models:
+Before running the analysis, you need to train the models. The training notebooks are located in the [models/train](models/train) subfolder. You will find two notebooks: [`object_detection_train.ipynb`](models/train/object_detection/object_detection_train.ipynb) and [`keypoints_detection_train.ipynb`](models/train/keypoints_detection/keypoints_detection_train.ipynb).
 
 Open each notebook and modify the `RESULTS_DIR` parameter to ensure it points to the latest training run (e.g., `trainx`, where x is the index of the latest run).
 
