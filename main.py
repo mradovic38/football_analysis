@@ -31,18 +31,14 @@ def main():
     # 3. Assign clubs to players based on their uniforms' colors
     # Create 'Club' objects - Needed for Player Club Assignment
     # Replace the RGB values with the actual colors of the clubs.
-    # club1 = Club('Club1',         # club name 
-    #              (232, 247, 248), # player jersey color
-    #              (6, 25, 21)      # goalkeeper jersey color
-    #              )
-    # club2 = Club('Club2',         # club name 
-    #              (172, 251, 145), # player jersey color
-    #              (239, 156, 132)  # goalkeeper jersey color
-    #              )   
-
-    
-    club1 = Club('Club1', (173, 49, 57), (239, 156, 132))
-    club2 = Club('Club2', (251, 235, 255), (209, 201, 70))
+    club1 = Club('Club1',         # club name 
+                 (232, 247, 248), # player jersey color
+                 (6, 25, 21)      # goalkeeper jersey color
+                 )
+    club2 = Club('Club2',         # club name 
+                 (172, 251, 145), # player jersey color
+                 (239, 156, 132)  # goalkeeper jersey color
+                 )   
 
     # Create a ClubAssigner Object to automatically assign players and goalkeepers 
     # to their respective clubs based on jersey colors.
@@ -84,7 +80,7 @@ def main():
     # The batch_size determines how many frames are processed in one go.
     process_video(processor,                                # Created FootballVideoProcessor object
                   video_source='input_videos/video2.mp4', # Video source (in this case video file path)
-                  output_video='output_videos/test5.mp4',    # Output video path (Optional)
+                  output_video='output_videos/testx.mp4',    # Output video path (Optional)
                   batch_size=10                             # Number of frames to process at once
                   )
 
