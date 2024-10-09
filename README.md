@@ -73,7 +73,7 @@ Detect and track players, goalkeepers, referees, and footballs using advanced co
 ![image](https://github.com/user-attachments/assets/3d85e410-65af-4fb6-8c44-fdca717daf13)
 
 #### Detection: 
-The system processes multiple frames from a video feed, resizing them to 1280x1280 pixels for optimal performance. The **YOLO11m detection** model performs batch inference, identifying objects such as players, goalkeepers, referees, and the ball, returning bounding boxes and associated confidence scores.
+The system processes multiple frames from a video feed, resizing them to 1280x1280 pixels for optimal performance. The **YOLO11s detection** model performs batch inference, identifying objects such as players, goalkeepers, referees, and the ball, returning bounding boxes and associated confidence scores.
 #### Tracking:
 Using the **Byte Tracker**, detected objects are tracked across frames. The tracking maintains the identities of objects as they move through the scene.
 
@@ -151,7 +151,7 @@ Monitor the video processing in real-time with a live video preview, enhancing u
 Save tracking information to JSON files for further analysis and record-keeping, ensuring a comprehensive review of gameplay data.
 ## License
 
-This project is licensed under the [MIT License](LICENSE). However, it uses the YOLO11 model, which is licensed under the [AGPL-3.0 and Enterprise Licenses](https://www.ultralytics.com/license).
+This project is licensed under the [MIT License](LICENSE). However, it uses the YOLO11 models, which are licensed under the [AGPL-3.0 and Enterprise Licenses](https://www.ultralytics.com/license).
 
 
 ## 🏆 Acknowledgements
