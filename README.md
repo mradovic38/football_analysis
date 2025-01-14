@@ -154,7 +154,7 @@ Save tracking information to JSON files for further analysis and record-keeping,
 This project is licensed under the [MIT License](LICENSE). However, it uses the YOLO11 models, which are licensed under the [AGPL-3.0 and Enterprise Licenses](https://www.ultralytics.com/license).
 
 
-## 🏆 Acknowledgements
+## 📖 Resources
 
  - [Code In a Jiffy - Build an AI/ML Football Analysis system with YOLO, OpenCV, and Python](https://youtu.be/neBZ6huolkg?si=ZEgoreaHGE6YniXN)
  - [Roboflow - Football AI Tutorial: From Basics to Advanced Stats with Python](https://youtu.be/aBVGKoNZQUw?si=DEb1BbARQBrd87Ez)
